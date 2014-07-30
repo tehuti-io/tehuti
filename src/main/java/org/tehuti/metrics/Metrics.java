@@ -46,7 +46,7 @@ import org.tehuti.utils.Utils;
 public class Metrics {
 
     private final MetricConfig config;
-    private final ConcurrentMap<String, KafkaMetric> metrics;
+    private final ConcurrentMap<String, TehutiMetric> metrics;
     private final ConcurrentMap<String, Sensor> sensors;
     private final List<MetricsReporter> reporters;
     private final Time time;
@@ -83,11 +83,11 @@ public class Metrics {
     public Metrics(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
         this.config = defaultConfig;
         this.sensors = new CopyOnWriteMap<String, Sensor>();
-        this.metrics = new CopyOnWriteMap<String, KafkaMetric>();
+        this.metrics = new CopyOnWriteMap<String, TehutiMetric>();
         this.reporters = Utils.notNull(reporters);
         this.time = time;
         for (MetricsReporter reporter : reporters)
-            reporter.init(new ArrayList<KafkaMetric>());
+            reporter.init(new ArrayList<TehutiMetric>());
     }
 
     /**
@@ -177,7 +177,7 @@ public class Metrics {
      * @param measurable The measurable that will be measured by this metric
      */
     public synchronized void addMetric(String name, String description, MetricConfig config, Measurable measurable) {
-        KafkaMetric m = new KafkaMetric(new Object(),
+        TehutiMetric m = new TehutiMetric(new Object(),
                                         Utils.notNull(name),
                                         Utils.notNull(description),
                                         Utils.notNull(measurable),
@@ -190,11 +190,11 @@ public class Metrics {
      * Add a MetricReporter
      */
     public synchronized void addReporter(MetricsReporter reporter) {
-        Utils.notNull(reporter).init(new ArrayList<KafkaMetric>(metrics.values()));
+        Utils.notNull(reporter).init(new ArrayList<TehutiMetric>(metrics.values()));
         this.reporters.add(reporter);
     }
 
-    synchronized void registerMetric(KafkaMetric metric) {
+    synchronized void registerMetric(TehutiMetric metric) {
         if (this.metrics.containsKey(metric.name()))
             throw new IllegalArgumentException("A metric named '" + metric.name() + "' already exists, can't register another one.");
         this.metrics.put(metric.name(), metric);
@@ -205,7 +205,7 @@ public class Metrics {
     /**
      * Get all the metrics currently maintained indexed by metric name
      */
-    public Map<String, KafkaMetric> metrics() {
+    public Map<String, TehutiMetric> metrics() {
         return this.metrics;
     }
 

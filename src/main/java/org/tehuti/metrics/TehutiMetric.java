@@ -19,7 +19,13 @@ package org.tehuti.metrics;
 import org.tehuti.Metric;
 import org.tehuti.utils.Time;
 
-public final class KafkaMetric implements Metric {
+/**
+ * This implementation of the {@link org.tehuti.Metric} interface is meant to be used internally by Tehuti.
+ *
+ * It should not be exposed to users of the library.
+ */
+
+public final class TehutiMetric implements Metric {
 
     private final String name;
     private final String description;
@@ -28,7 +34,7 @@ public final class KafkaMetric implements Metric {
     private final Measurable measurable;
     private MetricConfig config;
 
-    KafkaMetric(Object lock, String name, String description, Measurable measurable, MetricConfig config, Time time) {
+    TehutiMetric(Object lock, String name, String description, Measurable measurable, MetricConfig config, Time time) {
         super();
         this.name = name;
         this.description = description;

@@ -31,9 +31,9 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
-import org.tehuti.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.tehuti.TehutiException;
 
 /**
  * Register metrics in JMX as dynamic mbeans based on the metric names
@@ -43,7 +43,7 @@ public class JmxReporter implements MetricsReporter {
     private static final Logger log = LoggerFactory.getLogger(JmxReporter.class);
     private static final Object lock = new Object();
     private String prefix;
-    private final Map<String, KafkaMbean> mbeans = new HashMap<String, KafkaMbean>();
+    private final Map<String, TehutiMbean> mbeans = new HashMap<String, TehutiMbean>();
 
     public JmxReporter() {
         this("");
@@ -61,60 +61,60 @@ public class JmxReporter implements MetricsReporter {
     }
 
     @Override
-    public void init(List<KafkaMetric> metrics) {
+    public void init(List<TehutiMetric> metrics) {
         synchronized (lock) {
-            for (KafkaMetric metric : metrics)
+            for (TehutiMetric metric : metrics)
                 addAttribute(metric);
-            for (KafkaMbean mbean : mbeans.values())
+            for (TehutiMbean mbean : mbeans.values())
                 reregister(mbean);
         }
     }
 
     @Override
-    public void metricChange(KafkaMetric metric) {
+    public void metricChange(TehutiMetric metric) {
         synchronized (lock) {
-            KafkaMbean mbean = addAttribute(metric);
+            TehutiMbean mbean = addAttribute(metric);
             reregister(mbean);
         }
     }
 
-    private KafkaMbean addAttribute(KafkaMetric metric) {
+    private TehutiMbean addAttribute(TehutiMetric metric) {
         try {
             String[] names = split(prefix + metric.name());
             String qualifiedName = names[0] + "." + names[1];
             if (!this.mbeans.containsKey(qualifiedName))
-                mbeans.put(qualifiedName, new KafkaMbean(names[0], names[1]));
-            KafkaMbean mbean = this.mbeans.get(qualifiedName);
+                mbeans.put(qualifiedName, new TehutiMbean(names[0], names[1]));
+            TehutiMbean mbean = this.mbeans.get(qualifiedName);
             mbean.setAttribute(names[2], metric);
             return mbean;
         } catch (JMException e) {
-            throw new KafkaException("Error creating mbean attribute " + metric.name(), e);
+            throw new TehutiException("Error creating mbean attribute " + metric.name(), e);
         }
     }
 
     public void close() {
         synchronized (lock) {
-            for (KafkaMbean mbean : this.mbeans.values())
+            for (TehutiMbean mbean : this.mbeans.values())
                 unregister(mbean);
         }
     }
 
-    private void unregister(KafkaMbean mbean) {
+    private void unregister(TehutiMbean mbean) {
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         try {
             if (server.isRegistered(mbean.name()))
                 server.unregisterMBean(mbean.name());
         } catch (JMException e) {
-            throw new KafkaException("Error unregistering mbean", e);
+            throw new TehutiException("Error unregistering mbean", e);
         }
     }
 
-    private void reregister(KafkaMbean mbean) {
+    private void reregister(TehutiMbean mbean) {
         unregister(mbean);
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(mbean, mbean.name());
         } catch (JMException e) {
-            throw new KafkaException("Error registering mbean " + mbean.name(), e);
+            throw new TehutiException("Error registering mbean " + mbean.name(), e);
         }
     }
 
@@ -132,14 +132,14 @@ public class JmxReporter implements MetricsReporter {
         return new String[] { packageName, beanName, attributeName };
     }
 
-    private static class KafkaMbean implements DynamicMBean {
+    private static class TehutiMbean implements DynamicMBean {
         private final String beanName;
         private final ObjectName objectName;
-        private final Map<String, KafkaMetric> metrics;
+        private final Map<String, TehutiMetric> metrics;
 
-        public KafkaMbean(String packageName, String beanName) throws MalformedObjectNameException {
+        public TehutiMbean(String packageName, String beanName) throws MalformedObjectNameException {
             this.beanName = beanName;
-            this.metrics = new HashMap<String, KafkaMetric>();
+            this.metrics = new HashMap<String, TehutiMetric>();
             this.objectName = new ObjectName(packageName + ":type=" + beanName);
         }
 
@@ -147,7 +147,7 @@ public class JmxReporter implements MetricsReporter {
             return objectName;
         }
 
-        public void setAttribute(String name, KafkaMetric metric) {
+        public void setAttribute(String name, TehutiMetric metric) {
             this.metrics.put(name, metric);
         }
 
@@ -176,9 +176,9 @@ public class JmxReporter implements MetricsReporter {
         public MBeanInfo getMBeanInfo() {
             MBeanAttributeInfo[] attrs = new MBeanAttributeInfo[metrics.size()];
             int i = 0;
-            for (Map.Entry<String, KafkaMetric> entry : this.metrics.entrySet()) {
+            for (Map.Entry<String, TehutiMetric> entry : this.metrics.entrySet()) {
                 String attribute = entry.getKey();
-                KafkaMetric metric = entry.getValue();
+                TehutiMetric metric = entry.getValue();
                 attrs[i] = new MBeanAttributeInfo(attribute, double.class.getName(), metric.description(), true, false, false);
                 i += 1;
             }

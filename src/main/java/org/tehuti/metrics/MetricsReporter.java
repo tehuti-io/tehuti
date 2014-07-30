@@ -25,13 +25,13 @@ public interface MetricsReporter extends Configurable {
      * This is called when the reporter is first registered to initially register all existing metrics
      * @param metrics All currently existing metrics
      */
-    public void init(List<KafkaMetric> metrics);
+    public void init(List<TehutiMetric> metrics);
 
     /**
      * This is called whenever a metric is updated or added
      * @param metric
      */
-    public void metricChange(KafkaMetric metric);
+    public void metricChange(TehutiMetric metric);
 
     /**
      * Called when the metrics repository is closed.

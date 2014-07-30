@@ -17,7 +17,9 @@
 package org.tehuti;
 
 /**
- * A numerical metric tracked for monitoring purposes
+ * A numerical metric tracked for monitoring purposes.
+ *
+ * This read-only interface is intended for general consumption by users of the library.
  */
 public interface Metric {
 

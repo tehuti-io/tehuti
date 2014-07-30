@@ -17,25 +17,25 @@
 package org.tehuti;
 
 /**
- * The base class of all other Kafka exceptions
+ * The base class of all other Tehuti exceptions
  */
-public class KafkaException extends RuntimeException {
+public class TehutiException extends RuntimeException {
 
     private final static long serialVersionUID = 1L;
 
-    public KafkaException(String message, Throwable cause) {
+    public TehutiException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public KafkaException(String message) {
+    public TehutiException(String message) {
         super(message);
     }
 
-    public KafkaException(Throwable cause) {
+    public TehutiException(Throwable cause) {
         super(cause);
     }
 
-    public KafkaException() {
+    public TehutiException() {
         super();
     }
 

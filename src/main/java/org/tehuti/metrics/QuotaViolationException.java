@@ -16,12 +16,12 @@
  */
 package org.tehuti.metrics;
 
-import org.tehuti.KafkaException;
+import org.tehuti.TehutiException;
 
 /**
  * Thrown when a sensor records a value that causes a metric to go outside the bounds configured as its quota
  */
-public class QuotaViolationException extends KafkaException {
+public class QuotaViolationException extends TehutiException {
 
     private static final long serialVersionUID = 1L;
 

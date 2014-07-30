@@ -33,7 +33,7 @@ public final class Sensor {
     private final String name;
     private final Sensor[] parents;
     private final List<Stat> stats;
-    private final List<KafkaMetric> metrics;
+    private final List<TehutiMetric> metrics;
     private final MetricConfig config;
     private final Time time;
 
@@ -42,7 +42,7 @@ public final class Sensor {
         this.registry = registry;
         this.name = Utils.notNull(name);
         this.parents = parents == null ? new Sensor[0] : parents;
-        this.metrics = new ArrayList<KafkaMetric>();
+        this.metrics = new ArrayList<TehutiMetric>();
         this.stats = new ArrayList<Stat>();
         this.config = config;
         this.time = time;
@@ -106,7 +106,7 @@ public final class Sensor {
      */
     private void checkQuotas(long timeMs) {
         for (int i = 0; i < this.metrics.size(); i++) {
-            KafkaMetric metric = this.metrics.get(i);
+            TehutiMetric metric = this.metrics.get(i);
             MetricConfig config = metric.config();
             if (config != null) {
                 Quota quota = config.quota();
@@ -134,7 +134,7 @@ public final class Sensor {
     public synchronized void add(CompoundStat stat, MetricConfig config) {
         this.stats.add(Utils.notNull(stat));
         for (NamedMeasurable m : stat.stats()) {
-            KafkaMetric metric = new KafkaMetric(this, m.name(), m.description(), m.stat(), config == null ? this.config : config, time);
+            TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), config == null ? this.config : config, time);
             this.registry.registerMetric(metric);
             this.metrics.add(metric);
         }
@@ -177,7 +177,7 @@ public final class Sensor {
      * @param config A special configuration for this metric. If null use the sensor default configuration.
      */
     public synchronized void add(String name, String description, MeasurableStat stat, MetricConfig config) {
-        KafkaMetric metric = new KafkaMetric(this,
+        TehutiMetric metric = new TehutiMetric(this,
                                              Utils.notNull(name),
                                              Utils.notNull(description),
                                              Utils.notNull(stat),
@@ -188,7 +188,7 @@ public final class Sensor {
         this.stats.add(stat);
     }
 
-    synchronized List<KafkaMetric> metrics() {
+    synchronized List<TehutiMetric> metrics() {
         return Collections.unmodifiableList(this.metrics);
     }
 
