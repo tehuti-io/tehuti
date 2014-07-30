@@ -62,27 +62,27 @@ public class MetricsTest {
         // pretend 2 seconds passed...
         time.sleep(2000);
 
-        assertEquals("s2 reflects the constant value", 5.0, metrics.metrics().get("s2.total").value(), EPS);
-        assertEquals("Avg(0...9) = 4.5", 4.5, metrics.metrics().get("test.avg").value(), EPS);
-        assertEquals("Max(0...9) = 9", 9.0, metrics.metrics().get("test.max").value(), EPS);
-        assertEquals("Min(0...9) = 0", 0.0, metrics.metrics().get("test.min").value(), EPS);
-        assertEquals("Rate(0...9) = 22.5", 22.5, metrics.metrics().get("test.rate").value(), EPS);
-        assertEquals("Occurences(0...9) = 5", 5.0, metrics.metrics().get("test.occurences").value(), EPS);
-        assertEquals("Count(0...9) = 10", 10.0, metrics.metrics().get("test.count").value(), EPS);
+        assertEquals("s2 reflects the constant value", 5.0, metrics.getMetric("s2.total").value(), EPS);
+        assertEquals("Avg(0...9) = 4.5", 4.5, metrics.getMetric("test.avg").value(), EPS);
+        assertEquals("Max(0...9) = 9", 9.0, metrics.getMetric("test.max").value(), EPS);
+        assertEquals("Min(0...9) = 0", 0.0, metrics.getMetric("test.min").value(), EPS);
+        assertEquals("Rate(0...9) = 22.5", 22.5, metrics.getMetric("test.rate").value(), EPS);
+        assertEquals("Occurences(0...9) = 5", 5.0, metrics.getMetric("test.occurences").value(), EPS);
+        assertEquals("Count(0...9) = 10", 10.0, metrics.getMetric("test.count").value(), EPS);
     }
 
     @Test
     public void testHierarchicalSensors() {
         Sensor parent1 = metrics.sensor("test.parent1");
-        parent1.add("test.parent1.count", new Count());
+        Metric parent1Count = parent1.add("test.parent1.count", new Count());
         Sensor parent2 = metrics.sensor("test.parent2");
-        parent2.add("test.parent2.count", new Count());
+        Metric parent2Count = parent2.add("test.parent2.count", new Count());
         Sensor child1 = metrics.sensor("test.child1", parent1, parent2);
-        child1.add("test.child1.count", new Count());
+        Metric child1Count = child1.add("test.child1.count", new Count());
         Sensor child2 = metrics.sensor("test.child2", parent1);
-        child2.add("test.child2.count", new Count());
+        Metric child2Count = child2.add("test.child2.count", new Count());
         Sensor grandchild = metrics.sensor("test.grandchild", child1);
-        grandchild.add("test.grandchild.count", new Count());
+        Metric grandchildCount = grandchild.add("test.grandchild.count", new Count());
 
         /* increment each sensor one time */
         parent1.record();
@@ -91,15 +91,15 @@ public class MetricsTest {
         child2.record();
         grandchild.record();
 
-        double p1 = parent1.metrics().get(0).value();
-        double p2 = parent2.metrics().get(0).value();
-        double c1 = child1.metrics().get(0).value();
-        double c2 = child2.metrics().get(0).value();
-        double gc = grandchild.metrics().get(0).value();
+        double p1 = parent1Count.value();
+        double p2 = parent2Count.value();
+        double c1 = child1Count.value();
+        double c2 = child2Count.value();
+        double gc = grandchildCount.value();
 
         /* each metric should have a count equal to one + its children's count */
         assertEquals(1.0, gc, EPS);
-        assertEquals(1.0 + gc, child1.metrics().get(0).value(), EPS);
+        assertEquals(1.0 + gc, c1, EPS);
         assertEquals(1.0, c2, EPS);
         assertEquals(1.0 + c1, p2, EPS);
         assertEquals(1.0 + c1 + c2, p1, EPS);
@@ -189,9 +189,9 @@ public class MetricsTest {
         MetricConfig config = new MetricConfig().eventWindow(50).samples(2);
         Sensor sensor = metrics.sensor("test", config);
         sensor.add(percs);
-        Metric p25 = this.metrics.metrics().get("test.p25");
-        Metric p50 = this.metrics.metrics().get("test.p50");
-        Metric p75 = this.metrics.metrics().get("test.p75");
+        Metric p25 = this.metrics.getMetric("test.p25");
+        Metric p50 = this.metrics.getMetric("test.p50");
+        Metric p75 = this.metrics.getMetric("test.p75");
 
         // record two windows worth of sequential values
         for (int i = 0; i < buckets; i++)

@@ -12,12 +12,9 @@
  */
 package org.tehuti.metrics;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import org.tehuti.Metric;
 import org.tehuti.metrics.CompoundStat.NamedMeasurable;
 import org.tehuti.utils.Time;
 import org.tehuti.utils.Utils;
@@ -121,8 +118,8 @@ public final class Sensor {
     /**
      * Register a compound statistic with this sensor with no config override
      */
-    public void add(CompoundStat stat) {
-        add(stat, null);
+    public Map<String, Metric> add(CompoundStat stat) {
+        return add(stat, null);
     }
 
     /**
@@ -130,14 +127,20 @@ public final class Sensor {
      * @param stat The stat to register
      * @param config The configuration for this stat. If null then the stat will use the default configuration for this
      *        sensor.
+     *
+     * @return a map of {@link Metric} indexed by their name, each of which were contained in the {@link CompoundStat}
+     *         and added to this sensor.
      */
-    public synchronized void add(CompoundStat stat, MetricConfig config) {
+    public synchronized Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
         this.stats.add(Utils.notNull(stat));
+        Map<String, Metric> addedMetrics = new HashMap<String, Metric>();
         for (NamedMeasurable m : stat.stats()) {
             TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), config == null ? this.config : config, time);
             this.registry.registerMetric(metric);
             this.metrics.add(metric);
+            addedMetrics.put(metric.name(), metric);
         }
+        return addedMetrics;
     }
 
     /**
@@ -145,8 +148,8 @@ public final class Sensor {
      * {@link Sensor#add(String, String, MeasurableStat, MetricConfig) add(name, "", stat, null)}
      * 
      */
-    public void add(String name, MeasurableStat stat) {
-        add(name, stat, null);
+    public Metric add(String name, MeasurableStat stat) {
+        return add(name, stat, null);
     }
 
     /**
@@ -154,8 +157,8 @@ public final class Sensor {
      * {@link Sensor#add(String, String, MeasurableStat, MetricConfig) add(name, description, stat, null)}
      * 
      */
-    public void add(String name, String description, MeasurableStat stat) {
-        add(name, description, stat, null);
+    public Metric add(String name, String description, MeasurableStat stat) {
+        return add(name, description, stat, null);
     }
 
     /**
@@ -165,8 +168,8 @@ public final class Sensor {
      * @param stat
      * @param config
      */
-    public void add(String name, MeasurableStat stat, MetricConfig config) {
-        add(name, "", stat, config);
+    public Metric add(String name, MeasurableStat stat, MetricConfig config) {
+        return add(name, "", stat, config);
     }
 
     /**
@@ -175,8 +178,9 @@ public final class Sensor {
      * @param description A description used when reporting the value
      * @param stat The statistic to keep
      * @param config A special configuration for this metric. If null use the sensor default configuration.
+     * @return a {@link Metric} instance representing the registered metric
      */
-    public synchronized void add(String name, String description, MeasurableStat stat, MetricConfig config) {
+    public synchronized Metric add(String name, String description, MeasurableStat stat, MetricConfig config) {
         TehutiMetric metric = new TehutiMetric(this,
                                              Utils.notNull(name),
                                              Utils.notNull(description),
@@ -186,9 +190,10 @@ public final class Sensor {
         this.registry.registerMetric(metric);
         this.metrics.add(metric);
         this.stats.add(stat);
+        return metric;
     }
 
-    synchronized List<TehutiMetric> metrics() {
+    synchronized List<? extends Metric> metrics() {
         return Collections.unmodifiableList(this.metrics);
     }
 

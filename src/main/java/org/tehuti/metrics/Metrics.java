@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
+import org.tehuti.Metric;
 import org.tehuti.utils.CopyOnWriteMap;
 import org.tehuti.utils.SystemTime;
 import org.tehuti.utils.Time;
@@ -36,8 +37,8 @@ import org.tehuti.utils.Utils;
  * // set up metrics:
  * Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
  * Sensor sensor = metrics.sensor(&quot;message-sizes&quot;);
- * sensor.add(&quot;kafka.producer.message-sizes.avg&quot;, new Avg());
- * sensor.add(&quot;kafka.producer.message-sizes.max&quot;, new Max());
+ * sensor.add(&quot;message-sizes.avg&quot;, new Avg());
+ * sensor.add(&quot;message-sizes.max&quot;, new Max());
  * 
  * // as messages are sent we record the sizes
  * sensor.record(messageSize);
@@ -141,9 +142,10 @@ public class Metrics {
      * This is a way to expose existing values as metrics.
      * @param name The name of the metric
      * @param measurable The measurable that will be measured by this metric
+     * @return a {@link Metric} instance representing the registered metric
      */
-    public void addMetric(String name, Measurable measurable) {
-        addMetric(name, "", measurable);
+    public Metric addMetric(String name, Measurable measurable) {
+        return addMetric(name, "", measurable);
     }
 
     /**
@@ -152,9 +154,10 @@ public class Metrics {
      * @param name The name of the metric
      * @param description A human-readable description to include in the metric
      * @param measurable The measurable that will be measured by this metric
+     * @return a {@link Metric} instance representing the registered metric
      */
-    public void addMetric(String name, String description, Measurable measurable) {
-        addMetric(name, description, null, measurable);
+    public Metric addMetric(String name, String description, Measurable measurable) {
+        return addMetric(name, description, null, measurable);
     }
 
     /**
@@ -163,9 +166,10 @@ public class Metrics {
      * @param name The name of the metric
      * @param config The configuration to use when measuring this measurable
      * @param measurable The measurable that will be measured by this metric
+     * @return a {@link Metric} instance representing the registered metric
      */
-    public void addMetric(String name, MetricConfig config, Measurable measurable) {
-        addMetric(name, "", config, measurable);
+    public Metric addMetric(String name, MetricConfig config, Measurable measurable) {
+        return addMetric(name, "", config, measurable);
     }
 
     /**
@@ -175,15 +179,22 @@ public class Metrics {
      * @param description A human-readable description to include in the metric
      * @param config The configuration to use when measuring this measurable
      * @param measurable The measurable that will be measured by this metric
+     * @return a {@link Metric} instance representing the registered metric
+     *
+     * N.B.: If the registered measurable is a {@link CompoundStat} (such as {@link org.tehuti.metrics.stats.Percentiles}),
+     *       then the returned {@link Metric} will represent that {@link CompoundStat}. In order to get access to the
+     *       {@link Metric} instances representing the specific metrics contained in the {@link CompoundStat}, you'll
+     *       need to call {@link #getMetric(String)} or {@link #metrics()}.
      */
-    public synchronized void addMetric(String name, String description, MetricConfig config, Measurable measurable) {
+    public synchronized Metric addMetric(String name, String description, MetricConfig config, Measurable measurable) {
         TehutiMetric m = new TehutiMetric(new Object(),
-                                        Utils.notNull(name),
-                                        Utils.notNull(description),
-                                        Utils.notNull(measurable),
-                                        config == null ? this.config : config,
-                                        time);
+                                          Utils.notNull(name),
+                                          Utils.notNull(description),
+                                          Utils.notNull(measurable),
+                                          config == null ? this.config : config,
+                                          time);
         registerMetric(m);
+        return m;
     }
 
     /**
@@ -205,8 +216,12 @@ public class Metrics {
     /**
      * Get all the metrics currently maintained indexed by metric name
      */
-    public Map<String, TehutiMetric> metrics() {
+    public Map<String, ? extends Metric> metrics() {
         return this.metrics;
+    }
+
+    public Metric getMetric(String name) {
+        return this.metrics.get(name);
     }
 
     /**
