@@ -83,6 +83,11 @@ public class Rate implements MeasurableStat {
         }
     }
 
+    /**
+     * A {@link SampledStat} that maintains a total of what it has seen.
+     *
+     * Generally useless except when used as part of a {@link Rate}.
+     */
     public static class SampledTotal extends SampledStat {
 
         public SampledTotal() {

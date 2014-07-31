@@ -19,7 +19,7 @@ package org.tehuti.metrics;
 /**
  * A MeasurableStat is a {@link Stat} that is also {@link Measurable} (i.e. can produce a single floating point value).
  * This is the interface used for most of the simple statistics such as {@link org.tehuti.metrics.stats.Avg},
- * {@link org.tehuti.metrics.stats.Max}, {@link org.tehuti.metrics.stats.Count}, etc.
+ * {@link org.tehuti.metrics.stats.Min}, {@link org.tehuti.metrics.stats.Max}, etc.
  */
 public interface MeasurableStat extends Stat, Measurable {
 
