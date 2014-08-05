@@ -30,7 +30,7 @@ import org.tehuti.metrics.MetricConfig;
  */
 public abstract class SampledStat implements MeasurableStat {
 
-    private double initialValue;
+    protected double initialValue;
     private int current = 0;
     protected List<Sample> samples;
 

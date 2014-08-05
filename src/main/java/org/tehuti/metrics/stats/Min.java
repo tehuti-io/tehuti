@@ -22,7 +22,11 @@ import org.tehuti.metrics.MetricConfig;
 public class Min extends SampledStat {
 
     public Min() {
-        super(Double.MIN_VALUE);
+        this(Double.POSITIVE_INFINITY);
+    }
+
+    public Min(double initialValue) {
+        super(initialValue);
     }
 
     @Override
@@ -32,10 +36,10 @@ public class Min extends SampledStat {
 
     @Override
     public double combine(List<Sample> samples, MetricConfig config, long now) {
-        double max = Double.MAX_VALUE;
+        double min = initialValue;
         for (int i = 0; i < samples.size(); i++)
-            max = Math.min(max, samples.get(i).value);
-        return max;
+            min = Math.min(min, samples.get(i).value);
+        return min;
     }
 
 }
