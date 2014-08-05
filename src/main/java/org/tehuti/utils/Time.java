@@ -34,6 +34,6 @@ public interface Time {
     /**
      * Sleep for the given number of milliseconds
      */
-    public void sleep(long ms);
+    public void sleep(long ms) throws InterruptedException;
 
 }
