@@ -12,7 +12,6 @@
  */
 package org.tehuti.metrics.stats;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.tehuti.metrics.MeasurableStat;
@@ -81,31 +80,5 @@ public class Rate implements MeasurableStat {
             default:
                 throw new IllegalStateException("Unknown unit: " + unit);
         }
-    }
-
-    /**
-     * A {@link SampledStat} that maintains a total of what it has seen.
-     *
-     * Generally useless except when used as part of a {@link Rate}.
-     */
-    public static class SampledTotal extends SampledStat {
-
-        public SampledTotal() {
-            super(0.0d);
-        }
-
-        @Override
-        protected void update(Sample sample, MetricConfig config, double value, long timeMs) {
-            sample.value += value;
-        }
-
-        @Override
-        public double combine(List<Sample> samples, MetricConfig config, long now) {
-            double total = 0.0;
-            for (int i = 0; i < samples.size(); i++)
-                total += samples.get(i).value;
-            return total;
-        }
-
     }
 }
