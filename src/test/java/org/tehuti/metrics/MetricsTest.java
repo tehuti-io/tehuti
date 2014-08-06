@@ -212,4 +212,18 @@ public class MetricsTest {
 
     }
 
+    @Test
+    public void testAllSamplesPurged() {
+        long timeWindow = 10000;
+        int samples = 2;
+        MetricConfig config = new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
+        Sensor sensor = metrics.sensor("test.testAllSamplesPurged", config);
+        Metric rate = sensor.add("test.testAllSamplesPurged.qps", new OccurrenceRate());
+        sensor.record(12345);
+        time.sleep(1000);
+        assertEquals(1.0, rate.value(), 0.0); // 1 QPS so far
+        time.sleep(timeWindow * samples); // All samples should be purged on the next measurement
+        assertEquals(0.0, rate.value(), 0.0); // We should get zero QPS, not NaN
+    }
+
 }
