@@ -7,8 +7,8 @@ repositories {
 }
 
 dependencies {
-    compile "org.slf4j:slf4j-api:1.7.6"
-    testCompile 'com.novocode:junit-interface:0.9'
+    compile 'log4j:log4j:1.2.17'
+    testCompile 'junit:junit:4.6'
 }
 
 idea {
@@ -17,3 +17,5 @@ idea {
     downloadSources = true
   }
 }
+
+task wrapper(type: Wrapper) { gradleVersion = '1.12' }
