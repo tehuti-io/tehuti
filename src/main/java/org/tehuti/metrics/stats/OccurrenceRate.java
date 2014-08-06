@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class OccurrenceRate extends Rate {
     public OccurrenceRate() {
-        super(TimeUnit.SECONDS);
+        this(TimeUnit.SECONDS);
     }
 
     public OccurrenceRate(TimeUnit unit) {
