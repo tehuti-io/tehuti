@@ -21,23 +21,57 @@ public class RateTest {
 
     Logger logger = Logger.getLogger(this.getClass());
 
+    private MetricConfig getConfig(int samples) {
+        return new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
+    }
+
     @Test
     public void testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero() {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
-            MetricConfig config = new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
-            Sensor sensor = metrics.sensor("test.with" + samples + "samples.testAllSamplesPurged", config);
-            Metric rate = sensor.add("test.with" + samples + "samples.testAllSamplesPurged.qps", new OccurrenceRate());
+            // Set up
+            MetricConfig config = getConfig(samples);
+            Sensor sensor = metrics.sensor(
+                    "testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero.with" + samples + "samples", config);
+            Metric rate = sensor.add(
+                    "testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero.with" + samples + "samples.qps", new OccurrenceRate());
+
+            // No sleep, we measure the rate immediately after creation
             assertEquals("We should get zero QPS, not NaN [" + samples + " samples]", 0.0, rate.value(), 0.0);
         }
     }
 
     @Test
-    public void testReturnSensibleValuesAfterPurgingAllWindows() {
+    public void testReturnSensibleValueWhenOneRecordAndElapsedTimeIsZero() {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
-            MetricConfig config = new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
-            Sensor sensor = metrics.sensor("test.with" + samples + "samples.testAllSamplesPurged", config);
-            Metric rate = sensor.add("test.with" + samples + "samples.testAllSamplesPurged.qps", new OccurrenceRate());
-            Metric count = sensor.add("test.with" + samples + "samples.testAllSamplesPurged.count", new Count());
+            // Set up
+            MetricConfig config = getConfig(samples);
+            Sensor sensor = metrics.sensor(
+                    "testReturnZeroWhenOneRecordAndElapsedTimeIsZero.with" + samples + "samples", config);
+            Metric rate = sensor.add(
+                    "testReturnZeroWhenOneRecordAndElapsedTimeIsZero.with" + samples + "samples.qps", new OccurrenceRate());
+
+            sensor.record(12345);
+
+            // No sleep, we measure the rate immediately after recording
+            double rateAtBeginningOfWindow = rate.value();
+            double expectedResult = 1.0 / TimeUnit.SECONDS.convert(timeWindow, TimeUnit.MILLISECONDS);
+            assertEquals("We should get low QPS for one data point at beginning of a window, " +
+                    "not an absurdly high number [" + samples + " samples]",
+                    expectedResult, rateAtBeginningOfWindow, 0.00001);
+        }
+    }
+
+    @Test
+    public void testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows() {
+        for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
+            // Set up
+            MetricConfig config = getConfig(samples);
+            Sensor sensor = metrics.sensor(
+                    "testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows.with" + samples + "samples", config);
+            Metric rate = sensor.add(
+                    "testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows.with" + samples + "samples.qps", new OccurrenceRate());
+            Metric count = sensor.add(
+                    "testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows.with" + samples + "samples.count", new Count());
 
             // This initializes all internal samples...
             // FIXME: Too implementation-specific, maybe we should always pre-init all samples?
@@ -53,6 +87,7 @@ public class RateTest {
             time.sleep(timeWindow * samples + 1);
             assertEquals("We should get zero QPS, not NaN [" + samples + " samples]", 0.0, rate.value(), 0.0);
 
+            // Record one data point with all samples obsolete
             sensor.record(12345);
             double rateAtBeginningOfWindow = rate.value();
             double expectedResult = 1.0 / TimeUnit.SECONDS.convert(timeWindow, TimeUnit.MILLISECONDS) / (samples - 1);

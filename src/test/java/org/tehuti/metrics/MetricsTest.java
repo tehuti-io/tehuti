@@ -29,7 +29,8 @@ public class MetricsTest {
     private static double EPS = 0.000001;
 
     MockTime time = new MockTime();
-    Metrics metrics = new Metrics(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time);
+    MetricConfig config = new MetricConfig();
+    Metrics metrics = new Metrics(config, Arrays.asList((MetricsReporter) new JmxReporter()), time);
 
     @Test
     public void testSimpleStats() throws Exception {
@@ -40,10 +41,11 @@ public class MetricsTest {
         s.add("test.max", new Max());
         s.add("test.min", new Min());
         s.add("test.rate", new Rate(TimeUnit.SECONDS));
-        s.add("test.occurences", new Rate(TimeUnit.SECONDS, new SampledCount()));
-        s.add("test.count", new SampledCount());
-        s.add(new Percentiles(100, -100, 100, BucketSizing.CONSTANT, new Percentile("test.median", 50.0), new Percentile("test.perc99_9",
-                                                                                                                         99.9)));
+        s.add("test.occurrence-rate", new OccurrenceRate());
+        s.add("test.count", new Count());
+        s.add(new Percentiles(100, -100, 100, BucketSizing.CONSTANT,
+                new Percentile("test.median", 50.0),
+                new Percentile("test.perc99_9", 99.9)));
 
         Sensor s2 = metrics.sensor("test.sensor2");
         s2.add("s2.total", new Total());
@@ -52,16 +54,16 @@ public class MetricsTest {
         for (int i = 0; i < 10; i++)
             s.record(i);
 
-        // pretend 2 seconds passed...
-        time.sleep(2000);
+        // pretend 30 seconds passed...
+        time.sleep(config.timeWindowMs());
 
         assertEquals("s2 reflects the constant value", 5.0, metrics.getMetric("s2.total").value(), EPS);
         assertEquals("Avg(0...9) = 4.5", 4.5, metrics.getMetric("test.avg").value(), EPS);
         assertEquals("Max(0...9) = 9", 9.0, metrics.getMetric("test.max").value(), EPS);
         assertEquals("Min(0...9) = 0", 0.0, metrics.getMetric("test.min").value(), EPS);
-        assertEquals("Rate(0...9) = 22.5", 22.5, metrics.getMetric("test.rate").value(), EPS);
-        assertEquals("Occurences(0...9) = 5", 5.0, metrics.getMetric("test.occurences").value(), EPS);
-        assertEquals("SampledCount(0...9) = 10", 10.0, metrics.getMetric("test.count").value(), EPS);
+        assertEquals("Rate(0...9) = 1.5", 1.5, metrics.getMetric("test.rate").value(), EPS);
+        assertEquals("OccurrenceRate(0...9) = 0.33333333333", 0.33333333333, metrics.getMetric("test.occurrence-rate").value(), EPS);
+        assertEquals("Count(0...9) = 10", 10.0, metrics.getMetric("test.count").value(), EPS);
     }
 
     @Test

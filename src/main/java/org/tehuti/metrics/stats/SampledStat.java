@@ -41,7 +41,7 @@ public abstract class SampledStat implements MeasurableStat {
 
     @Override
     public void record(MetricConfig config, double value, long timeMs) {
-        Sample sample = current(timeMs);
+        Sample sample = current(config, timeMs);
         if (sample.isComplete(timeMs, config))
             sample = advance(config, timeMs);
         update(sample, config, value, timeMs);
@@ -55,7 +55,7 @@ public abstract class SampledStat implements MeasurableStat {
             this.samples.add(sample);
             return sample;
         } else {
-            Sample sample = current(timeMs);
+            Sample sample = current(config, timeMs);
             sample.reset(timeMs);
             return sample;
         }
@@ -71,9 +71,12 @@ public abstract class SampledStat implements MeasurableStat {
         return combine(this.samples, config, now);
     }
 
-    public Sample current(long timeMs) {
-        if (samples.size() == 0)
+    public Sample current(MetricConfig config, long timeMs) {
+        if (samples.size() == 0) {
+            // We initialize the first two samples to ensure there is no disproportionately high value initially...
             this.samples.add(newSample(timeMs));
+            this.samples.add(newSample(timeMs - config.timeWindowMs()));
+        }
         return this.samples.get(this.current);
     }
 
