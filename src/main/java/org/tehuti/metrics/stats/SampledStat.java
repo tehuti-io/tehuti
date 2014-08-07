@@ -93,13 +93,20 @@ public abstract class SampledStat implements MeasurableStat {
 
     public abstract double combine(List<Sample> samples, MetricConfig config, long now);
 
-    /* Timeout any windows that have expired in the absence of any events */
+    /**
+     *  Timeout any windows that have expired in the absence of any events
+     */
     protected void purgeObsoleteSamples(MetricConfig config, long now) {
         long expireAge = config.samples() * config.timeWindowMs();
         for (int i = 0; i < samples.size(); i++) {
             Sample sample = this.samples.get(i);
-            if (now - sample.lastWindowMs >= expireAge)
-                sample.reset(now - config.timeWindowMs());
+            if (now - sample.lastWindowMs >= expireAge) {
+                int rank = current - i;
+                if (rank < 0) {
+                    rank += samples.size();
+                }
+                sample.reset(now - rank * config.timeWindowMs());
+            }
         }
     }
 

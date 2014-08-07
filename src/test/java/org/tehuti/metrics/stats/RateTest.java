@@ -1,5 +1,6 @@
 package org.tehuti.metrics.stats;
 
+import org.apache.log4j.Logger;
 import org.junit.Test;
 import org.tehuti.Metric;
 import org.tehuti.metrics.*;
@@ -18,8 +19,10 @@ public class RateTest {
     MockTime time = new MockTime();
     Metrics metrics = new Metrics(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time);
 
+    Logger logger = Logger.getLogger(this.getClass());
+
     @Test
-    public void testReturnZeroWhenElapsedTimeIsZero() {
+    public void testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero() {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
             MetricConfig config = new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
             Sensor sensor = metrics.sensor("test.with" + samples + "samples.testAllSamplesPurged", config);
@@ -34,21 +37,28 @@ public class RateTest {
             MetricConfig config = new MetricConfig().timeWindow(timeWindow, TimeUnit.MILLISECONDS).samples(samples);
             Sensor sensor = metrics.sensor("test.with" + samples + "samples.testAllSamplesPurged", config);
             Metric rate = sensor.add("test.with" + samples + "samples.testAllSamplesPurged.qps", new OccurrenceRate());
-            assertEquals("We should get zero QPS, not NaN [" + samples + " samples]", 0.0, rate.value(), 0.0);
-            sensor.record(12345);
-//            time.sleep(1000);
-//            assertEquals("We should get 1 QPS after one second [" + samples + " samples]", 1.0, rate.value(), 0.0);
+            Metric count = sensor.add("test.with" + samples + "samples.testAllSamplesPurged.count", new Count());
 
-//            time.sleep(timeWindow * samples - 1000 + 1);
+            // This initializes all internal samples...
+            // FIXME: Too implementation-specific, maybe we should always pre-init all samples?
+            for (int i = 1; i <= samples; i++) {
+                time.sleep(timeWindow);
+                sensor.record(12345);
+                double countOfRecords = count.value();
+                assertEquals("We should have " + countOfRecords + " records so far [" + samples + " samples]",
+                        i, countOfRecords, 0.0);
+            }
+
+            // Fast-forward in the future so that all samples will be marked obsolete
             time.sleep(timeWindow * samples + 1);
             assertEquals("We should get zero QPS, not NaN [" + samples + " samples]", 0.0, rate.value(), 0.0);
 
             sensor.record(12345);
-            time.sleep(1);
             double rateAtBeginningOfWindow = rate.value();
-            assertTrue("We should get low QPS for one data point at beginning of a window, not an absurdly high number (" +
-                    rateAtBeginningOfWindow  + ") [" + samples + " samples]",
-                    rateAtBeginningOfWindow < 1.0);
+            double expectedResult = 1.0 / TimeUnit.SECONDS.convert(timeWindow, TimeUnit.MILLISECONDS) / (samples - 1);
+            assertEquals("We should get low QPS for one data point at beginning of a window, " +
+                    "not an absurdly high number [" + samples + " samples]",
+                    expectedResult, rateAtBeginningOfWindow, 0.00001);
         }
     }
 
