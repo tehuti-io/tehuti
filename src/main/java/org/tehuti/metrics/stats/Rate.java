@@ -57,8 +57,12 @@ public class Rate implements MeasurableStat {
     @Override
     public double measure(MetricConfig config, long now) {
         double value = stat.measure(config, now);
-        double elapsed = convert(now - stat.oldest(now).lastWindowMs);
-        return value / elapsed;
+        if (value == 0) {
+            return 0;
+        } else {
+            double elapsed = convert(now - stat.oldest(now).lastWindowMs);
+            return value / elapsed;
+        }
     }
 
     private double convert(long time) {

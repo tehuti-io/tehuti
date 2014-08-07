@@ -99,7 +99,7 @@ public abstract class SampledStat implements MeasurableStat {
         for (int i = 0; i < samples.size(); i++) {
             Sample sample = this.samples.get(i);
             if (now - sample.lastWindowMs >= expireAge)
-                sample.reset(now);
+                sample.reset(now - config.timeWindowMs());
         }
     }
 
@@ -124,6 +124,14 @@ public abstract class SampledStat implements MeasurableStat {
 
         public boolean isComplete(long timeMs, MetricConfig config) {
             return timeMs - lastWindowMs >= config.timeWindowMs() || eventCount >= config.eventWindow();
+        }
+
+        @Override
+        public String toString() {
+            return "Sample(initialValue = " + initialValue +
+                    "; eventCount = " + eventCount +
+                    "; lastWindowMs = " + lastWindowMs +
+                    "; value = " + value + ")";
         }
     }
 
