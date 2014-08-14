@@ -60,7 +60,7 @@ public class Rate implements MeasurableStat {
         if (value == 0) {
             return 0;
         } else {
-            double elapsed = convert(now - stat.oldest(now).lastWindowMs);
+            double elapsed = convert(now - stat.oldest(config, now).lastWindowMs);
             return value / elapsed;
         }
     }

@@ -22,7 +22,7 @@ import org.tehuti.metrics.MetricConfig;
  * A SampledStat records a single scalar value measured over one or more samples. Each sample is recorded over a
  * configurable window. The window can be defined by number of events or elapsed time (or both, if both are given the
  * window is complete when <i>either</i> the event count or elapsed time criterion is met).
- * <p>
+ *
  * All the samples are combined to produce the measurement. When a window is complete the oldest sample is cleared and
  * recycled to begin recording the next sample.
  * 
@@ -72,17 +72,12 @@ public abstract class SampledStat implements MeasurableStat {
     }
 
     public Sample current(MetricConfig config, long timeMs) {
-        if (samples.size() == 0) {
-            // We initialize the first two samples to ensure there is no disproportionately high value initially...
-            this.samples.add(newSample(timeMs));
-            this.samples.add(newSample(timeMs - config.timeWindowMs()));
-        }
+        checkInit(config, timeMs);
         return this.samples.get(this.current);
     }
 
-    public Sample oldest(long now) {
-        if (samples.size() == 0)
-            this.samples.add(newSample(now));
+    public Sample oldest(MetricConfig config, long now) {
+        checkInit(config, now);
         Sample oldest = this.samples.get(0);
         for (int i = 1; i < this.samples.size(); i++) {
             Sample curr = this.samples.get(i);
@@ -90,6 +85,22 @@ public abstract class SampledStat implements MeasurableStat {
                 oldest = curr;
         }
         return oldest;
+    }
+
+    /**
+     * Checks that the sample windows are properly initialized.
+     *
+     * In case there are no initialized sample yet, this creates two windows: one that begins now, as well as the
+     * previous window before that. This ensures that any measurement won't be calculated over an elapsed time of zero
+     * or few milliseconds. This is particularly significant for {@link org.tehuti.metrics.stats.Rate}, which can
+     * otherwise report disproportionately high values in those conditions. The downside of this approach is that
+     * Rates will under-report their values initially by virtue of carrying one empty window in their samples.
+     */
+    private void checkInit(MetricConfig config, long now) {
+        if (samples.size() == 0) {
+            this.samples.add(newSample(now));
+            this.samples.add(newSample(now - config.timeWindowMs()));
+        }
     }
 
     protected abstract void update(Sample sample, MetricConfig config, double value, long timeMs);
@@ -104,10 +115,14 @@ public abstract class SampledStat implements MeasurableStat {
         for (int i = 0; i < samples.size(); i++) {
             Sample sample = this.samples.get(i);
             if (now - sample.lastWindowMs >= expireAge) {
+                // The rank represents out how many spots behind the current window is window #i at.
+                // The current sample is rank 0, the next older sample is 1 and so on until the oldest sample,
+                // which is equal to samples.size() - 1.
                 int rank = current - i;
                 if (rank < 0) {
                     rank += samples.size();
                 }
+                // Here we reset the expired window to a time in the past that is offset proportionally to its rank.
                 sample.reset(now - rank * config.timeWindowMs());
             }
         }
@@ -132,6 +147,9 @@ public abstract class SampledStat implements MeasurableStat {
             this.value = initialValue;
         }
 
+        /**
+         * @return a boolean indicating if the sample is past its time-based or event count-based limits.
+         */
         public boolean isComplete(long timeMs, MetricConfig config) {
             return timeMs - lastWindowMs >= config.timeWindowMs() || eventCount >= config.eventWindow();
         }

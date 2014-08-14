@@ -1,8 +1,5 @@
 package org.tehuti.metrics.stats;
 
-import org.tehuti.metrics.MetricConfig;
-
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
