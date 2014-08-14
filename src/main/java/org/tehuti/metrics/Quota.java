@@ -49,4 +49,12 @@ public final class Quota {
         return (upper && value <= bound) || (!upper && value >= bound);
     }
 
+    public String toString() {
+        if (isUpperBound()) {
+            return "Quota(upper bound of " + bound() + ")";
+        } else {
+            return "Quota(lower bound of " + bound() + ")";
+        }
+    }
+
 }

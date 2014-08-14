@@ -46,7 +46,7 @@ public final class Sensor {
         checkForest(new HashSet<Sensor>());
     }
 
-    /* Validate that this sensor doesn't end up referencing itself */
+    /** Validate that this sensor doesn't end up referencing itself */
     private void checkForest(Set<Sensor> sensors) {
         if (!sensors.add(this))
             throw new IllegalArgumentException("Circular dependency in sensors: " + name() + " is its own parent.");
@@ -99,7 +99,7 @@ public final class Sensor {
 
     /**
      * Check if we have violated our quota for any metric that has a configured quota
-     * @param timeMs
+     * @param timeMs The current POSIX time in milliseconds
      */
     private void checkQuotas(long timeMs) {
         for (int i = 0; i < this.metrics.size(); i++) {
@@ -109,14 +109,15 @@ public final class Sensor {
                 Quota quota = config.quota();
                 if (quota != null) {
                     if (!quota.acceptable(metric.value(timeMs)))
-                        throw new QuotaViolationException("Metric " + metric.name() + " is in violation of its quota of " + quota.bound());
+                        throw new QuotaViolationException("Metric " + metric.name() + " is in violation of its " + quota.toString());
                 }
             }
         }
     }
 
     /**
-     * Register a compound statistic with this sensor with no config override
+     * Register a compound statistic with this sensor with no config override. Equivalent to
+     * {@link Sensor#add(CompoundStat, MetricConfig) add(stat, null)}
      */
     public Map<String, Metric> add(CompoundStat stat) {
         return add(stat, null);
@@ -146,7 +147,6 @@ public final class Sensor {
     /**
      * Add a metric with default configuration and no description. Equivalent to
      * {@link Sensor#add(String, String, MeasurableStat, MetricConfig) add(name, "", stat, null)}
-     * 
      */
     public Metric add(String name, MeasurableStat stat) {
         return add(name, stat, null);
@@ -155,7 +155,6 @@ public final class Sensor {
     /**
      * Add a metric with default configuration. Equivalent to
      * {@link Sensor#add(String, String, MeasurableStat, MetricConfig) add(name, description, stat, null)}
-     * 
      */
     public Metric add(String name, String description, MeasurableStat stat) {
         return add(name, description, stat, null);
@@ -164,9 +163,6 @@ public final class Sensor {
     /**
      * Add a metric to this sensor with no description. Equivalent to
      * {@link Sensor#add(String, String, MeasurableStat, MetricConfig) add(name, "", stat, config)}
-     * @param name
-     * @param stat
-     * @param config
      */
     public Metric add(String name, MeasurableStat stat, MetricConfig config) {
         return add(name, "", stat, config);

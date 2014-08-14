@@ -18,8 +18,18 @@ Here is an example usage:
     Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
     Sensor sensor = metrics.sensor("message-sizes");
     sensor.add("message-sizes.avg", new Avg());
+    sensor.add("message-sizes.count", new Count());
     sensor.add("message-sizes.max", new Max());
-     
+    sensor.add("message-sizes.qps-throughput", new OccurrenceRate());
+    sensor.add("message-sizes.bytes-throughput", new Rate());
+    sensor.add("message-sizes.total", new Total());
+    sensor.add(new Percentiles(10 * 1024, // Histogram's memory consumption: max 10 KB
+                               1024 * 1024, // Histogram's max value: 1 MB (i.e.: max expected message size)
+                               Percentiles.BucketSizing.CONSTANT,
+                               new Percentile("message-sizes.median", 50),
+                               new Percentile("message-sizes.95thPercentile", 95),
+                               new Percentile("message-sizes.99thPercentile", 99));
+
     // as messages are sent we record the sizes
     sensor.record(messageSize);
 
@@ -69,7 +79,7 @@ Here is an example on how to define quotas for queries per second and bytes per 
     sensor.add("message-sizes.avg", new Avg());
     sensor.add("message-sizes.count", new Count());
     sensor.add("message-sizes.qps-throughput", new OccurrenceRate(), queriesPerSecondQuota);
-    sensor.add("message-sizes.MBps-throughput", new Rate(), bytesPerSecondQuota);
+    sensor.add("message-sizes.bytes-throughput", new Rate(), bytesPerSecondQuota);
      
     // as messages are sent we record the sizes
     sensor.record(messageSize);

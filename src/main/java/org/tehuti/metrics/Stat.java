@@ -17,7 +17,7 @@
 package org.tehuti.metrics;
 
 /**
- * A Stat is a quanity such as average, max, etc that is computed off the stream of updates to a sensor
+ * A Stat is a quantity such as average, max, etc that is computed off the stream of updates to a sensor
  */
 public interface Stat {
 

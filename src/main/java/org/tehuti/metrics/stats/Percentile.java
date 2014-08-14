@@ -16,6 +16,13 @@
  */
 package org.tehuti.metrics.stats;
 
+/**
+ * A {@link Percentile} can be passed to the constructor of {@link Percentiles} to define which quantiles drawn from a
+ * {@link Histogram} need to be reported by the registered {@link org.tehuti.metrics.MetricsReporter}.
+ *
+ * Note: You can still get the value of a Histogram's quantile by calling its {@link Histogram#value(double) value}
+ * function directly. The Percentile instances used during construction are just for auto-reporting purposes.
+ */
 public class Percentile {
 
     private final String name;
