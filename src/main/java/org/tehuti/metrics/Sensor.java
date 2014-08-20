@@ -26,7 +26,7 @@ import org.tehuti.utils.Utils;
  */
 public final class Sensor {
 
-    private final Metrics registry;
+    private final MetricsRepository registry;
     private final String name;
     private final Sensor[] parents;
     private final List<Stat> stats;
@@ -34,7 +34,7 @@ public final class Sensor {
     private final MetricConfig config;
     private final Time time;
 
-    Sensor(Metrics registry, String name, Sensor[] parents, MetricConfig config, Time time) {
+    Sensor(MetricsRepository registry, String name, Sensor[] parents, MetricConfig config, Time time) {
         super();
         this.registry = registry;
         this.name = Utils.notNull(name);

@@ -30,13 +30,13 @@ public class MetricsTest {
 
     MockTime time = new MockTime();
     MetricConfig config = new MetricConfig();
-    Metrics metrics = new Metrics(config, Arrays.asList((MetricsReporter) new JmxReporter()), time);
+    MetricsRepository metricsRepository = new MetricsRepository(config, Arrays.asList((MetricsReporter) new JmxReporter()), time);
 
     @Test
     public void testSimpleStats() throws Exception {
         ConstantMeasurable measurable = new ConstantMeasurable();
-        metrics.addMetric("direct.measurable", measurable);
-        Sensor s = metrics.sensor("test.sensor");
+        metricsRepository.addMetric("direct.measurable", measurable);
+        Sensor s = metricsRepository.sensor("test.sensor");
         s.add("test.avg", new Avg());
         s.add("test.max", new Max());
         s.add("test.min", new Min());
@@ -47,7 +47,7 @@ public class MetricsTest {
                 new Percentile("test.median", 50.0),
                 new Percentile("test.perc99_9", 99.9)));
 
-        Sensor s2 = metrics.sensor("test.sensor2");
+        Sensor s2 = metricsRepository.sensor("test.sensor2");
         s2.add("s2.total", new Total());
         s2.record(5.0);
 
@@ -57,26 +57,26 @@ public class MetricsTest {
         // pretend 30 seconds passed...
         time.sleep(config.timeWindowMs());
 
-        assertEquals("s2 reflects the constant value", 5.0, metrics.getMetric("s2.total").value(), EPS);
-        assertEquals("Avg(0...9) = 4.5", 4.5, metrics.getMetric("test.avg").value(), EPS);
-        assertEquals("Max(0...9) = 9", 9.0, metrics.getMetric("test.max").value(), EPS);
-        assertEquals("Min(0...9) = 0", 0.0, metrics.getMetric("test.min").value(), EPS);
-        assertEquals("Rate(0...9) = 1.5", 1.5, metrics.getMetric("test.rate").value(), EPS);
-        assertEquals("OccurrenceRate(0...9) = 0.33333333333", 0.33333333333, metrics.getMetric("test.occurrence-rate").value(), EPS);
-        assertEquals("Count(0...9) = 10", 10.0, metrics.getMetric("test.count").value(), EPS);
+        assertEquals("s2 reflects the constant value", 5.0, metricsRepository.getMetric("s2.total").value(), EPS);
+        assertEquals("Avg(0...9) = 4.5", 4.5, metricsRepository.getMetric("test.avg").value(), EPS);
+        assertEquals("Max(0...9) = 9", 9.0, metricsRepository.getMetric("test.max").value(), EPS);
+        assertEquals("Min(0...9) = 0", 0.0, metricsRepository.getMetric("test.min").value(), EPS);
+        assertEquals("Rate(0...9) = 1.5", 1.5, metricsRepository.getMetric("test.rate").value(), EPS);
+        assertEquals("OccurrenceRate(0...9) = 0.33333333333", 0.33333333333, metricsRepository.getMetric("test.occurrence-rate").value(), EPS);
+        assertEquals("Count(0...9) = 10", 10.0, metricsRepository.getMetric("test.count").value(), EPS);
     }
 
     @Test
     public void testHierarchicalSensors() {
-        Sensor parent1 = metrics.sensor("test.parent1");
+        Sensor parent1 = metricsRepository.sensor("test.parent1");
         Metric parent1Count = parent1.add("test.parent1.count", new SampledCount());
-        Sensor parent2 = metrics.sensor("test.parent2");
+        Sensor parent2 = metricsRepository.sensor("test.parent2");
         Metric parent2Count = parent2.add("test.parent2.count", new SampledCount());
-        Sensor child1 = metrics.sensor("test.child1", parent1, parent2);
+        Sensor child1 = metricsRepository.sensor("test.child1", parent1, parent2);
         Metric child1Count = child1.add("test.child1.count", new SampledCount());
-        Sensor child2 = metrics.sensor("test.child2", parent1);
+        Sensor child2 = metricsRepository.sensor("test.child2", parent1);
         Metric child2Count = child2.add("test.child2.count", new SampledCount());
-        Sensor grandchild = metrics.sensor("test.grandchild", child1);
+        Sensor grandchild = metricsRepository.sensor("test.grandchild", child1);
         Metric grandchildCount = grandchild.add("test.grandchild.count", new SampledCount());
 
         /* increment each sensor one time */
@@ -102,10 +102,10 @@ public class MetricsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testBadSensorHiearchy() {
-        Sensor p = metrics.sensor("parent");
-        Sensor c1 = metrics.sensor("child1", p);
-        Sensor c2 = metrics.sensor("child2", p);
-        metrics.sensor("gc", c1, c2); // should fail
+        Sensor p = metricsRepository.sensor("parent");
+        Sensor c1 = metricsRepository.sensor("child1", p);
+        Sensor c2 = metricsRepository.sensor("child2", p);
+        metricsRepository.sensor("gc", c1, c2); // should fail
     }
 
     @Test
@@ -145,13 +145,13 @@ public class MetricsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testDuplicateMetricName() {
-        metrics.sensor("test").add("test", new Avg());
-        metrics.sensor("test2").add("test", new Total());
+        metricsRepository.sensor("test").add("test", new Avg());
+        metricsRepository.sensor("test2").add("test", new Total());
     }
 
     @Test
     public void testQuotas() {
-        Sensor sensor = metrics.sensor("test");
+        Sensor sensor = metricsRepository.sensor("test");
         sensor.add("test1.total", new Total(), new MetricConfig().quota(Quota.lessThan(5.0)));
         sensor.add("test2.total", new Total(), new MetricConfig().quota(Quota.moreThan(0.0)));
         sensor.record(5.0);
@@ -161,7 +161,7 @@ public class MetricsTest {
         } catch (QuotaViolationException e) {
             // this is good
         }
-        assertEquals(6.0, metrics.metrics().get("test1.total").value(), EPS);
+        assertEquals(6.0, metricsRepository.metrics().get("test1.total").value(), EPS);
         sensor.record(-6.0);
         try {
             sensor.record(-1.0);
@@ -182,11 +182,11 @@ public class MetricsTest {
                                             new Percentile("test.p50", 50),
                                             new Percentile("test.p75", 75));
         MetricConfig config = new MetricConfig().eventWindow(50).samples(2);
-        Sensor sensor = metrics.sensor("test", config);
+        Sensor sensor = metricsRepository.sensor("test", config);
         sensor.add(percs);
-        Metric p25 = this.metrics.getMetric("test.p25");
-        Metric p50 = this.metrics.getMetric("test.p50");
-        Metric p75 = this.metrics.getMetric("test.p75");
+        Metric p25 = this.metricsRepository.getMetric("test.p25");
+        Metric p50 = this.metricsRepository.getMetric("test.p50");
+        Metric p75 = this.metricsRepository.getMetric("test.p75");
 
         // record two windows worth of sequential values
         for (int i = 0; i < buckets; i++)

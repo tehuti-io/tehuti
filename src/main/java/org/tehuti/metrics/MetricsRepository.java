@@ -35,7 +35,7 @@ import org.tehuti.utils.Utils;
  * 
  * <pre>
  * // set up metrics:
- * Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
+ * MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
  * Sensor sensor = metrics.sensor(&quot;message-sizes&quot;);
  * sensor.add(&quot;message-sizes.avg&quot;, new Avg());
  * sensor.add(&quot;message-sizes.max&quot;, new Max());
@@ -44,7 +44,7 @@ import org.tehuti.utils.Utils;
  * sensor.record(messageSize);
  * </pre>
  */
-public class Metrics {
+public class MetricsRepository {
 
     private final MetricConfig config;
     private final ConcurrentMap<String, TehutiMetric> metrics;
@@ -55,14 +55,14 @@ public class Metrics {
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
-    public Metrics() {
+    public MetricsRepository() {
         this(new MetricConfig());
     }
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
-    public Metrics(Time time) {
+    public MetricsRepository(Time time) {
         this(new MetricConfig(), new ArrayList<MetricsReporter>(0), time);
     }
 
@@ -71,7 +71,7 @@ public class Metrics {
      * metric that doesn't override its own config.
      * @param defaultConfig The default config to use for all metrics that don't override their config
      */
-    public Metrics(MetricConfig defaultConfig) {
+    public MetricsRepository(MetricConfig defaultConfig) {
         this(defaultConfig, new ArrayList<MetricsReporter>(0), new SystemTime());
     }
 
@@ -81,7 +81,7 @@ public class Metrics {
      * @param reporters The metrics reporters
      * @param time The time instance to use with the metrics
      */
-    public Metrics(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
+    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
         this.config = defaultConfig;
         this.sensors = new CopyOnWriteMap<String, Sensor>();
         this.metrics = new CopyOnWriteMap<String, TehutiMetric>();

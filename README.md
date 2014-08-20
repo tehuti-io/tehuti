@@ -15,7 +15,7 @@ At its core, Tehuti has the concept of sensors, for recording data points, and m
 Here is an example usage:
 
     // set up metrics:
-    Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
+    MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
     Sensor sensor = metrics.sensor("message-sizes");
     sensor.add("message-sizes.avg", new Avg());
     sensor.add("message-sizes.count", new Count());
@@ -42,8 +42,6 @@ Note: you can also use metrics directly without sensors, although typically sens
 
 One can define a MetricConfig and apply it at the sensor level, or for specific metrics. This configuration defines how sampling and quota works.
 
-For sampled stats, one can define the amount of sample windows to keep (and measure on); the default is 2 sample windows (the current and previous ones). One can also define two kinds of maximum bounds for sample windows: time-based and event-based; when the maximum time, or the maximum amount of events, is elapsed, a sampled stat will roll forward into a new window, and discard any expired window that goes beyond the maximum amount of windows to retain.
-
 Here is an example of custom configuration for a sensor and a metric:
 
     // Initialize config so that sample windows roll over after 10 seconds or 1000 events, whichever comes first
@@ -53,7 +51,7 @@ Here is an example of custom configuration for a sensor and a metric:
     MetricConfig specificConfig = new MetricConfig().samples(10).timeWindow(6000, TimeUnit.MILLISECONDS);
      
     // Use the first config for a sensor, and override one of the metrics within that sensor with the second config
-    Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
+    MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
     Sensor sensor = metrics.sensor("message-sizes", sensorConfig);
     sensor.add("message-sizes.min", new Min());
     sensor.add("message-sizes.max", new Max());
@@ -61,6 +59,15 @@ Here is an example of custom configuration for a sensor and a metric:
      
     // as messages are sent we record the sizes
     sensor.record(messageSize);
+
+Here are the configuration properties and their defaults:
+
+* samples: The amount of sample windows to keep (and measure on). Once a sampled stat goes over this amount of samples, the oldest one will be purged and replaced by the new one. The default is 2 sample windows (the current and previous ones).
+* eventWindow: The amount of events that can come into a single window before we roll forward to the next one. The default is Long.MAX_VALUE.
+* timeWindow: The maximum time that can go by since the first event recorded in a window before we roll forward to the next one. The default is 30 seconds.
+* quota: A Quota instance defining an upper or lower bound that must be respected for a certain metric. The default is null (no quota).
+
+Once a sampled stat goes over its maximum amount of samples, the oldest sample will be replaced by the new one. When measuring the value of a sampled stat, any sample whose beginning time is older than samples * timeWindow will be purged, so that the measurement is not affected by old data points.
 
 ### Quotas
 
@@ -72,7 +79,7 @@ Here is an example on how to define quotas for queries per second and bytes per 
     MetricConfig queriesPerSecondQuota = new MetricConfig().quota(Quota.lessThan(1000))
     MetricConfig bytesPerSecondQuota = new MetricConfig().quota(Quota.lessThan(100 * 1024 * 1024))
      
-    Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
+    MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
     Sensor sensor = metrics.sensor("messages");
     sensor.add("message-sizes.min", new Min());
     sensor.add("message-sizes.max", new Max());
@@ -88,5 +95,5 @@ Here is an example on how to define quotas for queries per second and bytes per 
 
 Finally, Tehuti can report metrics so that they can be picked up by external systems. Currently, Tehuti supports only JMX-based reporting, but the architecture is extendable to more types of reporting systems.
 
-    Metrics metrics = new Metrics(); // this is the global repository of metrics and sensors
+    MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
     metrics.addReporter(new JmxReporter("prefix.for.all.metrics.names."));

@@ -115,9 +115,9 @@ public abstract class SampledStat implements MeasurableStat {
         for (int i = 0; i < samples.size(); i++) {
             Sample sample = this.samples.get(i);
             if (now - sample.lastWindowMs >= expireAge) {
-                // The rank represents out how many spots behind the current window is window #i at.
-                // The current sample is rank 0, the next older sample is 1 and so on until the oldest sample,
-                // which is equal to samples.size() - 1.
+                // The samples array is used as a circular list. The rank represents how many spots behind the current
+                // window is window #i at. The current sample is rank 0, the next older sample is 1 and so on until
+                // the oldest sample, which has a rank equal to samples.size() - 1.
                 int rank = current - i;
                 if (rank < 0) {
                     rank += samples.size();

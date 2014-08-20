@@ -17,7 +17,7 @@ public class RateTest {
     long timeWindow = 10000;
 
     MockTime time = new MockTime();
-    Metrics metrics = new Metrics(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time);
+    MetricsRepository metricsRepository = new MetricsRepository(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time);
 
     Logger logger = Logger.getLogger(this.getClass());
 
@@ -30,7 +30,7 @@ public class RateTest {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
             // Set up
             MetricConfig config = getConfig(samples);
-            Sensor sensor = metrics.sensor(
+            Sensor sensor = metricsRepository.sensor(
                     "testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero.with" + samples + "samples", config);
             Metric rate = sensor.add(
                     "testReturnZeroWhenZeroRecordsAndElapsedTimeIsZero.with" + samples + "samples.qps", new OccurrenceRate());
@@ -45,7 +45,7 @@ public class RateTest {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
             // Set up
             MetricConfig config = getConfig(samples);
-            Sensor sensor = metrics.sensor(
+            Sensor sensor = metricsRepository.sensor(
                     "testReturnZeroWhenOneRecordAndElapsedTimeIsZero.with" + samples + "samples", config);
             Metric rate = sensor.add(
                     "testReturnZeroWhenOneRecordAndElapsedTimeIsZero.with" + samples + "samples.qps", new OccurrenceRate());
@@ -66,7 +66,7 @@ public class RateTest {
         for (int samples = minNumberOfSamples; samples <= maxNumberOfSamples; samples++) {
             // Set up
             MetricConfig config = getConfig(samples);
-            Sensor sensor = metrics.sensor(
+            Sensor sensor = metricsRepository.sensor(
                     "testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows.with" + samples + "samples", config);
             Metric rate = sensor.add(
                     "testReturnSensibleValuesAfterPopulatingAndThenPurgingAllWindows.with" + samples + "samples.qps", new OccurrenceRate());
