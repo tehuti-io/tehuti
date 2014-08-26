@@ -108,6 +108,13 @@ public class Percentiles extends SampledStat implements CompoundStat {
             super(0.0, now);
             this.histogram = new Histogram(scheme);
         }
+
+        @Override
+        public void reset(long now) {
+            super.reset(now);
+            histogram.clear();
+        }
+
     }
 
 }
