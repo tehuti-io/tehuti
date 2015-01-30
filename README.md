@@ -4,7 +4,7 @@ Tehuti is a simple metrics library providing statistical measurement, reporting 
 
 ## Build
 
-    $ git clone git@github.com:FelixGV/tehuti.git
+    $ git clone git@github.com:tehuti-io/tehuti.git
     $ cd tehuti
     $ ./gradlew build
 
