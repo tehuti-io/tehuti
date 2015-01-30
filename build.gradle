@@ -1,6 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
+apply plugin: 'maven'
+apply plugin: 'signing'
 
 repositories {
     mavenCentral()
@@ -11,6 +13,71 @@ dependencies {
     testCompile 'junit:junit:4.6'
 }
 
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+if (project.hasProperty("signing.enabled") && project.property("signing.enabled") == "true") {
+  uploadArchives {
+    repositories {
+      mavenDeployer {
+        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+  
+        repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+          authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+  
+        snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+          authentication(userName: ossrhUsername, password: ossrhPassword)
+        }
+  
+        pom.project {
+          name 'Tehuti'
+          packaging 'jar'
+          // optionally artifactId can be defined here 
+          description 'Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.'
+          url 'http://tehuti.io'
+  
+          scm {
+            connection 'scm:git:git@github.com:tehuti-io/tehuti.git'
+            developerConnection 'scm:git:git@github.com:tehuti-io/tehuti.git'
+            url 'https://github.com/tehuti-io/tehuti'
+          }
+  
+          licenses {
+            license {
+              name 'The Apache License, Version 2.0'
+              url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            }
+          }
+  
+          developers {
+            developer {
+              id 'FelixGV'
+              name 'Felix GV'
+              email 'fgv@linkedin.com'
+            }
+          }
+        }
+      }
+    }
+  }
+
+  signing {
+    sign configurations.archives
+  }
+}
+
 idea {
   module {
     downloadJavadoc = true
@@ -18,4 +85,6 @@ idea {
   }
 }
 
-task wrapper(type: Wrapper) { gradleVersion = '1.12' }
+task wrapper(type: Wrapper) {
+  gradleVersion = '1.12'
+}
