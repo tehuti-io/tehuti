@@ -2,6 +2,8 @@
 
 Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.
 
+Please subscribe to the [mailing list](https://groups.google.com/forum/#!forum/tehuti) to ask questions or discuss development.
+
 ## Build
 
     $ git clone git@github.com:tehuti-io/tehuti.git

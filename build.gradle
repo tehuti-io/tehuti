@@ -60,6 +60,20 @@ if (project.hasProperty("signing.enabled") && project.property("signing.enabled"
               url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
             }
           }
+
+          mailingLists {
+            mailingList {
+              name 'Tehuti mailing List'
+              subscribe 'https://groups.google.com/forum/#!forum/tehuti'
+              post 'tehuti@googlegroups.com'
+              archive 'https://groups.google.com/forum/#!forum/tehuti'
+            }
+          }
+
+          issueManagement{
+            system 'GitHub'
+            url 'https://github.com/tehuti-io/tehuti/issues'
+          }
   
           developers {
             developer {
