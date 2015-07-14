@@ -23,10 +23,20 @@ import io.tehuti.TehutiException;
  */
 public class QuotaViolationException extends TehutiException {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    public QuotaViolationException(String m) {
+    private final double value;
+
+    public QuotaViolationException(String m, double value) {
         super(m);
+        this.value = value;
+    }
+
+    /**
+     * @return The value of the {@link TehutiMetric} at the time it violated its {@link Quota}
+     */
+    public double getValue() {
+        return this.value;
     }
 
 }

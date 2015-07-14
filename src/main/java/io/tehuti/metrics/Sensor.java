@@ -12,12 +12,18 @@
  */
 package io.tehuti.metrics;
 
-import java.util.*;
-
 import io.tehuti.Metric;
 import io.tehuti.metrics.CompoundStat.NamedMeasurable;
 import io.tehuti.utils.Time;
 import io.tehuti.utils.Utils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A sensor applies a continuous sequence of numerical values to a set of associated metrics. For example a sensor on
@@ -108,8 +114,9 @@ public final class Sensor {
             if (config != null) {
                 Quota quota = config.quota();
                 if (quota != null) {
-                    if (!quota.acceptable(metric.value(timeMs)))
-                        throw new QuotaViolationException("Metric " + metric.name() + " is in violation of its " + quota.toString());
+                    double value = metric.value(timeMs);
+                    if (!quota.acceptable(value))
+                        throw new QuotaViolationException("Metric " + metric.name() + " is in violation of its " + quota.toString(), value);
                 }
             }
         }
