@@ -12,10 +12,11 @@
  */
 package io.tehuti.metrics.stats;
 
-import java.util.concurrent.TimeUnit;
-
 import io.tehuti.metrics.MeasurableStat;
 import io.tehuti.metrics.MetricConfig;
+import io.tehuti.utils.Time;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * The rate of the given quantity. By default this is the total observed over a set of samples from a sampled statistic
@@ -68,19 +69,19 @@ public class Rate implements MeasurableStat {
     private double convert(long time) {
         switch (unit) {
             case NANOSECONDS:
-                return time * 1000.0 * 1000.0;
+                return time * Time.NS_PER_MS;
             case MICROSECONDS:
-                return time * 1000.0;
+                return time * Time.US_PER_MS;
             case MILLISECONDS:
                 return time;
             case SECONDS:
-                return time / (1000.0);
+                return (double) time / Time.MS_PER_SECOND;
             case MINUTES:
-                return time / (60.0 * 1000.0);
+                return (double) time / Time.MS_PER_MINUTE;
             case HOURS:
-                return time / (60.0 * 60.0 * 1000.0);
+                return (double) time / Time.MS_PER_HOUR;
             case DAYS:
-                return time / (24.0 * 60.0 * 60.0 * 1000.0);
+                return (double) time / Time.MS_PER_DAY;
             default:
                 throw new IllegalStateException("Unknown unit: " + unit);
         }
