@@ -23,8 +23,18 @@ task sourcesJar(type: Jar) {
     from sourceSets.main.allSource
 }
 
+task testJar(type: Jar) {
+    classifier = 'test'
+    from sourceSets.test.output
+}
+
+task testSourcesJar(type: Jar) {
+    classifier = 'test-sources'
+    from sourceSets.test.allSource
+}
+
 artifacts {
-    archives javadocJar, sourcesJar
+    archives javadocJar, sourcesJar, testJar, testSourcesJar
 }
 
 if (project.hasProperty("signing.enabled") && project.property("signing.enabled") == "true") {
