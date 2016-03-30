@@ -97,4 +97,30 @@ public class RateTest {
         }
     }
 
+    @Test
+    public void testMetricBug() {
+        // Time window of sensor1 is 30s by default, and the time window of metricWith2Seconds is 2s.
+        Sensor sensor1 = metricsRepository.sensor("rateSensor1");
+        MetricConfig configWith2Seconds = new MetricConfig().timeWindow(2, TimeUnit.SECONDS);
+        Metric metricWith2Seconds = sensor1.add("metric_with_2_seconds.test", new Rate(TimeUnit.SECONDS), configWith2Seconds);
+
+        // Time window of sensor2 is 2s, and same as metricWithDefault2Seconds
+        Sensor sensor2 = metricsRepository.sensor("rateSensor2", new MetricConfig().timeWindow(2, TimeUnit.SECONDS));
+        Metric metricWithDefault2Seconds = sensor2.add("metric_with_default_2_seconds.test", new Rate(TimeUnit.SECONDS));
+
+        sensor1.record(100);
+        sensor2.record(100);
+        assertEquals(metricWith2Seconds.value(), metricWithDefault2Seconds.value(), 0);
+
+        time.sleep(1000);
+        sensor1.record(100);
+        sensor2.record(100);
+        assertEquals(metricWith2Seconds.value(), metricWithDefault2Seconds.value(), 0);
+
+        time.sleep(3000);
+        sensor1.record(100);
+        sensor2.record(100);
+        assertEquals(metricWith2Seconds.value(), metricWithDefault2Seconds.value(), 0);
+    }
+
 }
