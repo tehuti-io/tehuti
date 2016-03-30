@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
  * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -40,6 +40,8 @@ public final class Sensor {
     private final MetricConfig config;
     private final Time time;
 
+    private final Map<Stat, MetricConfig> statConfigs;
+
     Sensor(MetricsRepository registry, String name, Sensor[] parents, MetricConfig config, Time time) {
         super();
         this.registry = registry;
@@ -49,6 +51,7 @@ public final class Sensor {
         this.stats = new ArrayList<Stat>();
         this.config = config;
         this.time = time;
+        this.statConfigs = new HashMap<Stat, MetricConfig>();
         checkForest(new HashSet<Sensor>());
     }
 
@@ -95,8 +98,10 @@ public final class Sensor {
     public void record(double value, long timeMs) {
         synchronized (this) {
             // increment all the stats
-            for (int i = 0; i < this.stats.size(); i++)
-                this.stats.get(i).record(config, value, timeMs);
+            for (int i = 0; i < this.stats.size(); i++) {
+                Stat stat = this.stats.get(i);
+                stat.record(statConfigs.get(stat), value, timeMs);
+            }
             checkQuotas(timeMs);
         }
         for (int i = 0; i < parents.length; i++)
@@ -141,9 +146,11 @@ public final class Sensor {
      */
     public synchronized Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
         this.stats.add(Utils.notNull(stat));
+        MetricConfig statConfig = (config == null ? this.config : config);
+        this.statConfigs.put(stat, statConfig);
         Map<String, Metric> addedMetrics = new HashMap<String, Metric>();
         for (NamedMeasurable m : stat.stats()) {
-            TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), config == null ? this.config : config, time);
+            TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), statConfig, time);
             this.registry.registerMetric(metric);
             this.metrics.add(metric);
             addedMetrics.put(metric.name(), metric);
@@ -184,15 +191,17 @@ public final class Sensor {
      * @return a {@link Metric} instance representing the registered metric
      */
     public synchronized Metric add(String name, String description, MeasurableStat stat, MetricConfig config) {
+        MetricConfig statConfig = (config == null ? this.config : config);
         TehutiMetric metric = new TehutiMetric(this,
                                              Utils.notNull(name),
                                              Utils.notNull(description),
                                              Utils.notNull(stat),
-                                             config == null ? this.config : config,
+                                             statConfig,
                                              time);
         this.registry.registerMetric(metric);
         this.metrics.add(metric);
         this.stats.add(stat);
+        this.statConfigs.put(stat, statConfig);
         return metric;
     }
 
