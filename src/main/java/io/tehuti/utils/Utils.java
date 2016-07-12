@@ -26,4 +26,27 @@ public class Utils {
         else
             return t;
     }
+
+    /**
+     * This function splits a metric name into a triplet of {package name, bean name,
+     * attribute name} by using the last two dots in the name to split on.
+     * If there is only one dot in the name, this function returns an empty package
+     * name for the first element of the triplet.
+     * @param  name
+     * @return String triplet
+     * @throws IllegalArgumentException if there is dot in the name.
+     */
+    public static String[] splitMetricName(String name) {
+        int attributeStart = name.lastIndexOf('.');
+        if (attributeStart < 0)
+            throw new IllegalArgumentException("No MBean name in metric name: " + name);
+        String attributeName = name.substring(attributeStart + 1, name.length());
+        String remainder = name.substring(0, attributeStart);
+        int beanStart = remainder.lastIndexOf('.');
+        if (beanStart < 0)
+            return new String[] { "", remainder, attributeName };
+        String packageName = remainder.substring(0, beanStart);
+        String beanName = remainder.substring(beanStart + 1, remainder.length());
+        return new String[] { packageName, beanName, attributeName };
+    }
 }

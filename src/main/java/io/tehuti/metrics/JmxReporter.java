@@ -31,6 +31,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.ReflectionException;
 
+import io.tehuti.utils.Utils;
 import org.apache.log4j.Logger;
 import io.tehuti.TehutiException;
 
@@ -50,6 +51,12 @@ public class JmxReporter implements MetricsReporter {
 
     /**
      * Create a JMX reporter that prefixes all metrics with the given string.
+     * The metric full name (prefix + metric name) has to have least one dot
+     * separator in order to let reporter work properly.
+     *
+     * When the prefix ends with dot ("XXX."), it might be interpreted as a
+     * stand-alone package name or mbean name if there are less than 2 dot
+     * separators in the metric name.
      */
     public JmxReporter(String prefix) {
         this.prefix = prefix;
@@ -79,7 +86,7 @@ public class JmxReporter implements MetricsReporter {
 
     private TehutiMbean addAttribute(TehutiMetric metric) {
         try {
-            String[] names = split(prefix + metric.name());
+            String[] names = Utils.splitMetricName(prefix + metric.name());
             String qualifiedName = names[0] + "." + names[1];
             if (!this.mbeans.containsKey(qualifiedName))
                 mbeans.put(qualifiedName, new TehutiMbean(names[0], names[1]));
@@ -115,20 +122,6 @@ public class JmxReporter implements MetricsReporter {
         } catch (JMException e) {
             throw new TehutiException("Error registering mbean " + mbean.name(), e);
         }
-    }
-
-    private String[] split(String name) {
-        int attributeStart = name.lastIndexOf('.');
-        if (attributeStart < 0)
-            throw new IllegalArgumentException("No MBean name in metric name: " + name);
-        String attributeName = name.substring(attributeStart + 1, name.length());
-        String remainder = name.substring(0, attributeStart);
-        int beanStart = remainder.lastIndexOf('.');
-        if (beanStart < 0)
-            return new String[] { "", remainder, attributeName };
-        String packageName = remainder.substring(0, beanStart);
-        String beanName = remainder.substring(beanStart + 1, remainder.length());
-        return new String[] { packageName, beanName, attributeName };
     }
 
     private static class TehutiMbean implements DynamicMBean {
