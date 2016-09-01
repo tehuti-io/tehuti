@@ -25,6 +25,18 @@ import io.tehuti.metrics.MetricConfig;
  *
  * All the samples are combined to produce the measurement. When a window is complete the oldest sample is cleared and
  * recycled to begin recording the next sample.
+ *
+ *    <-- sample -->  <-- sample -->  <-- sample -->  <-- sample -->  <-- sample -->  <-- sample -->
+ *  +---------------+---------------+---------------+---------------+---------------+---------------+
+ *  <------------------------------------- total sliding window ------------------------------------>
+ *
+ * The total sliding window is a circular list that contains numbers of sample.
+ * In a time-based sliding window, the length of the sliding window is "# of the sample" * "length of the sample".
+ * Since records that fall in the same sample will be aggregated, it is the "granularity" of the metric. Given a fix
+ * sliding window length, shortening the sample length makes a finer granularity. (more accurate)
+ *
+ * SampledStat is implemented in the lazy evaluation fashion. That being said the necessary widow update (removing
+ * obsolete samples) would not be done unless a query {@link SampledStat#measure(MetricConfig, long)} arrives.
  * 
  * Subclasses of this class define different statistics measured using this basic pattern.
  */

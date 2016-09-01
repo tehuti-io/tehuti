@@ -72,7 +72,7 @@ public class JmxReporter implements MetricsReporter {
             for (TehutiMetric metric : metrics)
                 addAttribute(metric);
             for (TehutiMbean mbean : mbeans.values())
-                reregister(mbean);
+                register(mbean);
         }
     }
 
@@ -80,7 +80,26 @@ public class JmxReporter implements MetricsReporter {
     public void metricChange(TehutiMetric metric) {
         synchronized (lock) {
             TehutiMbean mbean = addAttribute(metric);
-            reregister(mbean);
+            register(mbean);
+        }
+    }
+
+    @Override
+    public void addMetric(TehutiMetric metric) {
+        synchronized (lock) {
+            TehutiMbean mbean = addAttribute(metric);
+            register(mbean);
+        }
+    }
+
+    @Override
+    public void removeMetric(TehutiMetric metric) {
+        synchronized (lock) {
+            String[] names = Utils.splitMetricName(prefix + metric.name());
+            String qualifiedName = names[0] + "." + names[1];
+            if (mbeans.containsKey(qualifiedName)) {
+                unregister(mbeans.get(qualifiedName));
+            }
         }
     }
 
@@ -115,7 +134,7 @@ public class JmxReporter implements MetricsReporter {
         }
     }
 
-    private void reregister(TehutiMbean mbean) {
+    private void register(TehutiMbean mbean) {
         unregister(mbean);
         try {
             ManagementFactory.getPlatformMBeanServer().registerMBean(mbean, mbean.name());
@@ -139,12 +158,12 @@ public class JmxReporter implements MetricsReporter {
             return objectName;
         }
 
-        public void setAttribute(String name, TehutiMetric metric) {
+        public synchronized void setAttribute(String name, TehutiMetric metric) {
             this.metrics.put(name, metric);
         }
 
         @Override
-        public Object getAttribute(String name) throws AttributeNotFoundException, MBeanException, ReflectionException {
+        public synchronized Object getAttribute(String name) throws AttributeNotFoundException, MBeanException, ReflectionException {
             if (this.metrics.containsKey(name))
                 return this.metrics.get(name).value();
             else
@@ -152,7 +171,7 @@ public class JmxReporter implements MetricsReporter {
         }
 
         @Override
-        public AttributeList getAttributes(String[] names) {
+        public synchronized AttributeList getAttributes(String[] names) {
             try {
                 AttributeList list = new AttributeList();
                 for (String name : names)

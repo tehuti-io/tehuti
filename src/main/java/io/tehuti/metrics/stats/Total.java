@@ -14,7 +14,6 @@ package io.tehuti.metrics.stats;
 
 import io.tehuti.metrics.MeasurableStat;
 import io.tehuti.metrics.MetricConfig;
-
 /**
  * An un-windowed cumulative total maintained over all time.
  */

@@ -210,7 +210,7 @@ public class MetricsRepository {
             throw new IllegalArgumentException("A metric named '" + metric.name() + "' already exists, can't register another one.");
         this.metrics.put(metric.name(), metric);
         for (MetricsReporter reporter : reporters)
-            reporter.metricChange(metric);
+            reporter.addMetric(metric);
     }
 
     /**
