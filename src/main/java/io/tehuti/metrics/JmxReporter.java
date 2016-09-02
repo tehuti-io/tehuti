@@ -57,6 +57,7 @@ public class JmxReporter implements MetricsReporter {
      * When the prefix ends with dot ("XXX."), it might be interpreted as a
      * stand-alone package name or mbean name if there are less than 2 dot
      * separators in the metric name.
+     * @param prefix that appends in front of metrics' own names
      */
     public JmxReporter(String prefix) {
         this.prefix = prefix;
@@ -97,7 +98,7 @@ public class JmxReporter implements MetricsReporter {
         synchronized (lock) {
             String[] names = Utils.splitMetricName(prefix + metric.name());
             String qualifiedName = names[0] + "." + names[1];
-            if (mbeans.containsKey(qualifiedName)) {
+            if (mbeans.remove(qualifiedName) != null) {
                 unregister(mbeans.get(qualifiedName));
             }
         }

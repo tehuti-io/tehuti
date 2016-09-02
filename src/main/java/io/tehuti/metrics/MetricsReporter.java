@@ -31,18 +31,20 @@ public interface MetricsReporter extends Configurable {
      * This is called whenever a metric is updated or added
      * This method is deprecated since the method name is vague and
      * it doesn't support removing metrics.
-     * @param metric
+     * @param metric which is going to be emitted
      */
     @Deprecated
     public void metricChange(TehutiMetric metric);
 
     /**
      * A better method for {@link MetricsReporter#metricChange(TehutiMetric)}
+     * @param metric that is going to be reported
      */
     public void addMetric(TehutiMetric metric);
 
     /**
      * This is called when removing a metric that has already been registered
+     * @param metric stop reporting a metric
      */
     public void removeMetric(TehutiMetric metric);
 

@@ -215,6 +215,7 @@ public class MetricsRepository {
 
     /**
      * Get all the metrics currently maintained indexed by metric name
+     * @return A map of all metrics in this metricsRepository
      */
     public Map<String, ? extends Metric> metrics() {
         return this.metrics;
