@@ -23,18 +23,32 @@ public final class Quota {
 
     private final boolean upper;
     private final double bound;
+    private boolean checkQuotaBeforeRecord;
 
     public Quota(double bound, boolean upper) {
+        this(bound, upper, false);
+    }
+
+    public Quota(double bound, boolean upper, boolean checkQuotaBeforeRecord) {
         this.bound = bound;
         this.upper = upper;
+        this.checkQuotaBeforeRecord = checkQuotaBeforeRecord;
     }
 
     public static Quota lessThan(double upperBound) {
         return new Quota(upperBound, true);
     }
 
+    public static Quota lessThan(double upperBound, boolean checkQuotaBeforeRecord) {
+        return new Quota(upperBound, true, checkQuotaBeforeRecord);
+    }
+
     public static Quota moreThan(double lowerBound) {
         return new Quota(lowerBound, false);
+    }
+
+    public static Quota moreThan(double lowerBound, boolean checkQuotaBeforeRecord) {
+        return new Quota(lowerBound, false, checkQuotaBeforeRecord);
     }
 
     public boolean isUpperBound() {
@@ -45,8 +59,16 @@ public final class Quota {
         return this.bound;
     }
 
+    public boolean isCheckQuotaBeforeRecord() {
+        return checkQuotaBeforeRecord;
+    }
+
     public boolean acceptable(double value) {
-        return (upper && value <= bound) || (!upper && value >= bound);
+        if (checkQuotaBeforeRecord) {
+            return (upper && value < bound) || (!upper && value > bound);
+        } else {
+            return (upper && value <= bound) || (!upper && value >= bound);
+        }
     }
 
     public String toString() {

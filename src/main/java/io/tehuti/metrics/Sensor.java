@@ -97,12 +97,14 @@ public final class Sensor {
      */
     public void record(double value, long timeMs) {
         synchronized (this) {
+            // Check quota before recording usage if needed.
+            checkQuotas(timeMs, true);
             // increment all the stats
             for (int i = 0; i < this.stats.size(); i++) {
                 Stat stat = this.stats.get(i);
                 stat.record(statConfigs.get(stat), value, timeMs);
             }
-            checkQuotas(timeMs);
+            checkQuotas(timeMs, false);
         }
         for (int i = 0; i < parents.length; i++)
             parents[i].record(value, timeMs);
@@ -112,16 +114,23 @@ public final class Sensor {
      * Check if we have violated our quota for any metric that has a configured quota
      * @param timeMs The current POSIX time in milliseconds
      */
-    private void checkQuotas(long timeMs) {
+    private void checkQuotas(long timeMs, boolean preCheck) {
         for (int i = 0; i < this.metrics.size(); i++) {
             TehutiMetric metric = this.metrics.get(i);
             MetricConfig config = metric.config();
             if (config != null) {
                 Quota quota = config.quota();
                 if (quota != null) {
+                    // Only check the quota on the right time. If quota is set to check quota before recording,
+                    // only verify the usage in pre-check round.
+                    if (quota.isCheckQuotaBeforeRecord() ^ preCheck) {
+                        continue;
+                    }
                     double value = metric.value(timeMs);
-                    if (!quota.acceptable(value))
-                        throw new QuotaViolationException("Metric " + metric.name() + " is in violation of its " + quota.toString(), value);
+                    if (!quota.acceptable(value)) {
+                        throw new QuotaViolationException(
+                            "Metric " + metric.name() + " is in violation of its " + quota.toString(), value);
+                    }
                 }
             }
         }
