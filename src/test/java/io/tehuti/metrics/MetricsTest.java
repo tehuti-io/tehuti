@@ -172,6 +172,22 @@ public class MetricsTest {
     }
 
     @Test
+    public void testCheckQuotaBeforeRecording() {
+        Sensor sensor = metricsRepository.sensor("test");
+        double quota = 10.0;
+        sensor.add("test1.total", new Total(),
+            new MetricConfig().quota(Quota.lessThan(quota, true)));
+        sensor.record(quota);
+        try {
+            sensor.record(1);
+            fail("Should have gotten a quota violation.");
+        } catch (QuotaViolationException e) {
+            // expected
+        }
+        assertEquals(quota, metricsRepository.metrics().get("test1.total").value(), EPS);
+    }
+
+    @Test
     public void testPercentiles() {
         int buckets = 100;
         Percentiles percs = new Percentiles(4 * buckets,
