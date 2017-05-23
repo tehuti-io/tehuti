@@ -172,7 +172,7 @@ public class MetricsTest {
     }
 
     @Test
-    public void testCheckQuotaBeforeRecord() {
+    public void testCheckQuotaBeforeRecording() {
         Sensor sensor = metricsRepository.sensor("test");
         double quota = 10.0;
         sensor.add("test1.total", new Total(),

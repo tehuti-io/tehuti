@@ -123,7 +123,7 @@ public final class Sensor {
                 if (quota != null) {
                     // Only check the quota on the right time. If quota is set to check quota before recording,
                     // only verify the usage in pre-check round.
-                    if (quota.isCheckQuotaBeforeRecord() ^ preCheck) {
+                    if (quota.isCheckQuotaBeforeRecording() ^ preCheck) {
                         continue;
                     }
                     double value = metric.value(timeMs);

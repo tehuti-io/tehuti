@@ -23,32 +23,44 @@ public final class Quota {
 
     private final boolean upper;
     private final double bound;
-    private boolean checkQuotaBeforeRecord;
+    private boolean checkQuotaBeforeRecording;
 
     public Quota(double bound, boolean upper) {
         this(bound, upper, false);
     }
 
-    public Quota(double bound, boolean upper, boolean checkQuotaBeforeRecord) {
+    public Quota(double bound, boolean upper, boolean checkQuotaBeforeRecording) {
         this.bound = bound;
         this.upper = upper;
-        this.checkQuotaBeforeRecord = checkQuotaBeforeRecord;
+        this.checkQuotaBeforeRecording = checkQuotaBeforeRecording;
     }
 
     public static Quota lessThan(double upperBound) {
         return new Quota(upperBound, true);
     }
 
-    public static Quota lessThan(double upperBound, boolean checkQuotaBeforeRecord) {
-        return new Quota(upperBound, true, checkQuotaBeforeRecord);
+    /**
+     * Create a quota object to limit the maximum usage.
+     * If checkQuotaBeforeRecording is set to true for any of the metrics registered in a sensor, then this can
+     * short-circuit the recording for ALL metrics tied to that sensor, even if some of them are configured with
+     * checkQuotaBeforeRecording set to false.
+     */
+    public static Quota lessThan(double upperBound, boolean checkQuotaBeforeRecording) {
+      return new Quota(upperBound, true, checkQuotaBeforeRecording);
     }
 
     public static Quota moreThan(double lowerBound) {
         return new Quota(lowerBound, false);
     }
 
-    public static Quota moreThan(double lowerBound, boolean checkQuotaBeforeRecord) {
-        return new Quota(lowerBound, false, checkQuotaBeforeRecord);
+    /**
+     * Create a quota object to limit the minimum usage.
+     * If checkQuotaBeforeRecording is set to true for any of the metrics registered in a sensor, then this can
+     * short-circuit the recording for ALL metrics tied to that sensor, even if some of them are configured with
+     * checkQuotaBeforeRecording set to false.
+     */
+    public static Quota moreThan(double lowerBound, boolean checkQuotaBeforeRecording) {
+        return new Quota(lowerBound, false, checkQuotaBeforeRecording);
     }
 
     public boolean isUpperBound() {
@@ -59,12 +71,12 @@ public final class Quota {
         return this.bound;
     }
 
-    public boolean isCheckQuotaBeforeRecord() {
-        return checkQuotaBeforeRecord;
+    public boolean isCheckQuotaBeforeRecording() {
+        return checkQuotaBeforeRecording;
     }
 
     public boolean acceptable(double value) {
-        if (checkQuotaBeforeRecord) {
+        if (checkQuotaBeforeRecording) {
             return (upper && value < bound) || (!upper && value > bound);
         } else {
             return (upper && value <= bound) || (!upper && value >= bound);
