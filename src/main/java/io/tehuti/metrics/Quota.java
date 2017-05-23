@@ -76,11 +76,7 @@ public final class Quota {
     }
 
     public boolean acceptable(double value) {
-        if (checkQuotaBeforeRecording) {
-            return (upper && value < bound) || (!upper && value > bound);
-        } else {
-            return (upper && value <= bound) || (!upper && value >= bound);
-        }
+        return (upper && value <= bound) || (!upper && value >= bound);
     }
 
     public String toString() {
