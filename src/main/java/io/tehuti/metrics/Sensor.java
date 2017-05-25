@@ -98,13 +98,13 @@ public final class Sensor {
     public void record(double value, long timeMs) {
         synchronized (this) {
             // Check quota before recording usage if needed.
-            checkQuotas(timeMs, true);
+            checkQuotas(timeMs, true, value);
             // increment all the stats
             for (int i = 0; i < this.stats.size(); i++) {
                 Stat stat = this.stats.get(i);
                 stat.record(statConfigs.get(stat), value, timeMs);
             }
-            checkQuotas(timeMs, false);
+            checkQuotas(timeMs, false, value);
         }
         for (int i = 0; i < parents.length; i++)
             parents[i].record(value, timeMs);
@@ -114,7 +114,7 @@ public final class Sensor {
      * Check if we have violated our quota for any metric that has a configured quota
      * @param timeMs The current POSIX time in milliseconds
      */
-    private void checkQuotas(long timeMs, boolean preCheck) {
+    private void checkQuotas(long timeMs, boolean preCheck, double requestedValue) {
         for (int i = 0; i < this.metrics.size(); i++) {
             TehutiMetric metric = this.metrics.get(i);
             MetricConfig config = metric.config();
@@ -126,7 +126,9 @@ public final class Sensor {
                     if (quota.isCheckQuotaBeforeRecording() ^ preCheck) {
                         continue;
                     }
-                    double value = metric.value(timeMs);
+                    // If we check quota before recording, we should count on the value of the current request.
+                    // So we could prevent the usage of current request exceeding the quota.
+                    double value = preCheck? requestedValue + metric.value(timeMs): metric.value(timeMs);
                     if (!quota.acceptable(value)) {
                         throw new QuotaViolationException(
                             "Metric " + metric.name() + " is in violation of its " + quota.toString(), value);

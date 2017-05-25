@@ -188,6 +188,24 @@ public class MetricsTest {
     }
 
     @Test
+    public void testCheckQuotaBeforeRecordingWithLargeSingleRequest() {
+        Sensor sensor = metricsRepository.sensor("test");
+        double quota = 10.0;
+        sensor.add("test1.total", new Total(),
+            new MetricConfig().quota(Quota.lessThan(quota, true)));
+
+        try {
+            sensor.record(quota*10);
+            fail("Should have gotten a quota violation.");
+        } catch (QuotaViolationException e) {
+            // expected
+        }
+        sensor.record(1);
+        // As we reject the large single request, so we did NOT record that usage.
+        assertEquals(1, metricsRepository.metrics().get("test1.total").value(), EPS);
+    }
+
+    @Test
     public void testPercentiles() {
         int buckets = 100;
         Percentiles percs = new Percentiles(4 * buckets,
