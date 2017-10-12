@@ -15,6 +15,7 @@ package io.tehuti.metrics;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import io.tehuti.utils.Time;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -185,6 +186,32 @@ public class MetricsTest {
             // expected
         }
         assertEquals(quota, metricsRepository.metrics().get("test1.total").value(), EPS);
+    }
+
+    @Test
+    public void testCheckQuotaBeforeRecordingForRateSensor(){
+        Sensor sensor = metricsRepository.sensor("test");
+        double quota = 10.0;
+        sensor.add("test1.total", new Rate(),
+            new MetricConfig().quota(Quota.lessThan(quota, true)));
+        // Should use all quota in current time window.
+        sensor.record(quota * config.timeWindowMs() / Time.MS_PER_SECOND);
+        // As we already used all quota, so could not accept any new value now.
+        try {
+            sensor.record(1);
+            fail("Should have gotten a quota violation.");
+        } catch (QuotaViolationException e) {
+            // expected
+        }
+
+        // Sleep 1.5 time window
+        time.sleep((long)(config.timeWindowMs() * 1.5));
+        // Now we could use half quota more
+        sensor.record(quota * config.timeWindowMs() /2 / Time.MS_PER_SECOND);
+        // Sleep 1 time window, the oldest time window should be retired. We start a new time window
+        time.sleep(config.timeWindowMs());
+        sensor.record(quota * config.timeWindowMs() /2 / Time.MS_PER_SECOND);
+
     }
 
     @Test

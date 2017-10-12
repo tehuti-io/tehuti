@@ -128,7 +128,7 @@ public final class Sensor {
                     }
                     // If we check quota before recording, we should count on the value of the current request.
                     // So we could prevent the usage of current request exceeding the quota.
-                    double value = preCheck? requestedValue + metric.value(timeMs): metric.value(timeMs);
+                    double value = preCheck? metric.extraValue(timeMs, requestedValue): metric.value(timeMs);
                     if (!quota.acceptable(value)) {
                         throw new QuotaViolationException(
                             "Metric " + metric.name() + " is in violation of its " + quota.toString(), value);

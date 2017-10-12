@@ -28,7 +28,7 @@ public class QuotaViolationException extends TehutiException {
     private final double value;
 
     public QuotaViolationException(String m, double value) {
-        super(m);
+        super(m + ", current value is: " + value);
         this.value = value;
     }
 
