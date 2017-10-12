@@ -25,4 +25,15 @@ public interface Measurable {
      */
     public double measure(MetricConfig config, long now);
 
+    /**
+     * Measure this quantity with an extra value and return the result as a double
+     *
+     * @param config The configuration for this metric
+     * @param now The POSIX time in milliseconds the measurement is being taken
+     * @param extraValue the value need to be counted in the current measurement
+     * @return The measured value
+     */
+    default double measureWithExtraValue(MetricConfig config, long now, double extraValue) {
+        return measure(config, now) + extraValue;
+    }
 }

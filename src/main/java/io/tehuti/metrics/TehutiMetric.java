@@ -65,9 +65,29 @@ public final class TehutiMetric implements Metric {
         }
     }
 
+    /**
+     * Return the current value of the measurement.
+     *
+     * @param timeMs
+     *
+     * @return
+     */
     double value(long timeMs) {
         return this.measurable.measure(config, timeMs);
     }
+
+    /**
+     * Return the current value plus extra value we gave of this measurement.
+     *
+     * @param timeMs
+     * @param extraValue
+     *
+     * @return
+     */
+    double extraValue(long timeMs, double extraValue) {
+        return this.measurable.measureWithExtraValue(config, timeMs, extraValue);
+    }
+
 
     public void config(MetricConfig config) {
         synchronized (lock) {
