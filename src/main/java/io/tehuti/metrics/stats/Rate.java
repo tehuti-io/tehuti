@@ -57,7 +57,7 @@ public class Rate implements MeasurableStat {
 
     @Override
     public double measure(MetricConfig config, long now) {
-        return measureWithExtraValue(config, now, 0);
+        return internalMeasure(config, now, stat.measure(config, now));
     }
 
     @Override
@@ -67,6 +67,10 @@ public class Rate implements MeasurableStat {
                 "Do NOT support measure with extra value for stat: " + stat.getClass().getName());
         }
         double value = stat.measure(config, now) + extraValue;
+        return internalMeasure(config, now, value);
+    }
+
+    private double internalMeasure(MetricConfig config, long now, double value) {
         if (value == 0) {
             return 0;
         } else {
