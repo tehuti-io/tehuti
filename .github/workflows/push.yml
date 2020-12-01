@@ -25,4 +25,4 @@ jobs:
         NG_FETCH_USER: ${{ secrets.NG_FETCH_USER }}
         NG_FETCH_KEY: ${{ secrets.NG_FETCH_KEY }}
         # add --info or --debug below for more details when trying to understand issues
-      run: ./gradlew clean build javadoc --stacktrace --warning-mode all --no-daemon
+      run: ./gradlew clean build --stacktrace --no-daemon
