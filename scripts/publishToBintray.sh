@@ -13,7 +13,6 @@ else
         echo "tag $SOURCE_TAG looks like a semver so proceeding with bintray publish"
         git status
         git describe --tags
-        ./gradlew printVersion
         ./gradlew bintrayUpload
     else
         echo "tag $SOURCE_TAG is NOT a valid semantic version (x.y.z) so not publishing to bintray"
