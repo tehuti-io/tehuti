@@ -5,7 +5,7 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 repositories {
-    mavenCentral()
+    maven { url "https://repo.maven.apache.org/maven2" }
 }
 
 dependencies {
