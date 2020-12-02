@@ -176,13 +176,14 @@ publishing {
     println "here 3###########################" 
     mymaven(MavenPublication) {
       println "here 4###########################" 
-      //groupId project.group
-      //artifactId project.name
-      //version project.version
-      groupId 'io.tehuti' 
-      artifactId 'tehuti'
-      version '0.8.1' 
+      groupId project.group
+      artifactId project.name
+      version project.version
+      //groupId 'io.tehuti' 
+      //artifactId 'tehuti'
+      //version '0.8.1' 
 
+      println "$groupId  $artifactId $version"
       from components.java
 
       artifact sourcesJar
