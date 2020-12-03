@@ -13,7 +13,9 @@ else
         echo "tag $SOURCE_TAG looks like a semver so proceeding with bintray publish"
         git status
         git describe --tags
-        ./gradlew bintrayUpload
+        #enable below to test the bintrayUpload process, it wouldn't do the actual uploading
+        #./gradlew bintrayUpload -Pbintray.dryRun --info
+        ./gradlew bintrayUpload --info
     else
         echo "tag $SOURCE_TAG is NOT a valid semantic version (x.y.z) so not publishing to bintray"
     fi

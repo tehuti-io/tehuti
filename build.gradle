@@ -4,7 +4,7 @@ buildscript {
     jcenter()
   }
   dependencies {
-    classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.+"
+    classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4"
   }
 }
 
@@ -16,10 +16,6 @@ apply plugin: 'signing'
 apply plugin: 'maven-publish'
 apply plugin: 'com.jfrog.bintray' 
 
-//apply from: "$rootDir/gradle/java-publishing.gradle"
-
-group = 'io.tehuti'
-version = '0.8.1'
 
 repositories {
     maven { url "https://repo.maven.apache.org/maven2" }
@@ -53,25 +49,6 @@ task testSourcesJar(type: Jar) {
 artifacts {
     archives javadocJar, sourcesJar, testJar, testSourcesJar
 }
-
-/*
-allprojects {
-	repositories {
-		jcenter()
-	}
-	apply plugin: 'maven'
-	apply plugin: 'maven-publish'
-	apply plugin: 'java'
-}
-*/
-
-/*
-subprojects {
-  apply plugin: 'java'
-
-  apply from: "$rootDir/gradle/java-publishing.gradle"
-}
-*/
 
 if (project.hasProperty("signing.enabled") && project.property("signing.enabled") == "true") {
   uploadArchives {
@@ -146,44 +123,14 @@ if (project.hasProperty("signing.enabled") && project.property("signing.enabled"
   }
 }
 
-bintray {
-  user = System.getenv('BINTRAY_USER')
-  key = System.getenv('BINTRAY_KEY')
-  println "here 1########################### $user $key"
-
-  dryRun = project.hasProperty("bintray.dryRun") //useful for testing
-  publications = ['mymaven'] //filled by child closure above
-
-  pkg {
-    repo = 'maven'
-    name = 'tehuti'
-    userOrg = 'linkedin'
-    licenses = ['Apache-2.0']
-    vcsUrl = 'https://github.com/ssen-li/tehuti.git'
-    version {
-      //name = project.version
-      name = '0.8.1'
-    }
-    publish = true
-  }
-
-  publish = true
-}
-
 publishing {
-  println "here 2###########################" 
   publications {
-    println "here 3###########################" 
-    mymaven(MavenPublication) {
-      println "here 4###########################" 
+    maven(MavenPublication) {
       groupId project.group
       artifactId project.name
       version project.version
-      //groupId 'io.tehuti' 
-      //artifactId 'tehuti'
-      //version '0.8.1' 
 
-      println "$groupId  $artifactId $version"
+      println "######artifact details $groupId:$artifactId:$version"
       from components.java
 
       artifact sourcesJar
@@ -191,59 +138,64 @@ publishing {
       artifact testJar
       artifact testSourcesJar
 
-      println "here 5###########################" 
-      //we strive to meet https://central.sonatype.org/pages/requirements.html
       pom {
-        println "here 6###########################" 
-        name 'Tehuti'
-        description 'Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.'
-        url 'http://tehuti.io'
+        name = 'Tehuti'
+        description = 'Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.'
+        url = 'http://tehuti.io'
 
-        println "here 7###########################" 
         licenses {
           license {
-            name 'The Apache License, Version 2.0'
-            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
           }
         }
-        println "here 8###########################" 
         developers {
           developer {
-            id 'FelixGV'
-            name 'Felix GV'
-            email 'fgv@linkedin.com'
+            id = 'FelixGV'
+            name = 'Felix GV'
+            email = 'fgv@linkedin.com'
             organization = 'LinkedIn'
             organizationUrl = 'linkedin.com'
           }
         }
-        println "here 9###########################" 
         scm {
-          //connection 'scm:git:git@github.com:tehuti-io/tehuti.git'
-          //developerConnection 'scm:git:git@github.com:tehuti-io/tehuti.git'
-          url 'https://github.com/ssen-li/tehuti'
+          connection = 'scm:git:git@github.com:tehuti-io/tehuti.git'
+          developerConnection = 'scm:git:git@github.com:tehuti-io/tehuti.git'
+          url = 'https://github.com/tehuti-io/tehuti'
         }
       }
-      println "here 10###########################" 
     }
-    println "here 11###########################" 
-    //record all of this module's publications in the bintray publications list
-    //for the root project
-    //List<String> allPublicationNames = new ArrayList<>(Arrays.asList(rootProject.bintray.publications))
-    //List<String> projectAndDepPublicationNames = new ArrayList<>(project.publishing.publications.names)
-    //for (String projectPubName : projectAndDepPublicationNames) {
-      //if (!allPublicationNames.contains(projectPubName)) {
-        //allPublicationNames.add(projectPubName)
-      //}
-    //}
-    //rootProject.bintray.publications = allPublicationNames.toArray()
   }
-  println "here 12###########################" 
 }
+
+bintray {
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_KEY')
+
+  dryRun = project.hasProperty("bintray.dryRun") //useful for testing
+  publications = ['maven'] 
+
+  pkg {
+    repo = 'maven'
+    name = 'tehuti'
+    userOrg = 'linkedin'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/tehuti-io/tehuti.git'
+    version {
+      name = project.version
+    }
+    publish = true
+  }
+  publish = true
+}
+
+
 bintrayUpload {
   doFirst {
     println "Publishing $jar.baseName to Bintray (dryRun: $dryRun, repo: $repoName, publish: $publish)"
   }
 }
+
 idea {
   module {
     downloadJavadoc = true
@@ -256,8 +208,3 @@ wrapper {
   distributionType = Wrapper.DistributionType.ALL
 }
 
-/*
-task wrapper(type: Wrapper) {
-  gradleVersion = '6.5.1'
-}
-*/

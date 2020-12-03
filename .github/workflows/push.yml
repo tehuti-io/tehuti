@@ -22,7 +22,5 @@ jobs:
       env:
         BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
         BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
-        NG_FETCH_USER: ${{ secrets.NG_FETCH_USER }}
-        NG_FETCH_KEY: ${{ secrets.NG_FETCH_KEY }}
         # add --info or --debug below for more details when trying to understand issues
       run: ./gradlew clean build --stacktrace --no-daemon
