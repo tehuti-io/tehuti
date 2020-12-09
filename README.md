@@ -1,5 +1,10 @@
 # tehuti
 
+[![Download](https://api.bintray.com/packages/linkedin/maven/tehuti/images/download.svg)](https://bintray.com/linkedin/maven/tehuti/_latestVersion)
+
+[![Build Status](https://github.com/tehuti-io/tehuti/workflows/push%20to%20master%20request%20build%20workflow/badge.svg)](https://github.com/tehuti-io/tehuti/actions?query=workflow%3A%22push+to+master+request+build+workflow%22)
+
+
 Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.
 
 Please subscribe to the [mailing list](https://groups.google.com/forum/#!forum/tehuti) to ask questions or discuss development.

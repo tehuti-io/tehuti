@@ -1,11 +1,24 @@
+
+buildscript {
+  repositories {
+    jcenter()
+  }
+  dependencies {
+    classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4"
+  }
+}
+
 apply plugin: 'java'
 apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray' 
+
 
 repositories {
-    mavenCentral()
+    maven { url "https://repo.maven.apache.org/maven2" }
 }
 
 dependencies {
@@ -110,6 +123,79 @@ if (project.hasProperty("signing.enabled") && project.property("signing.enabled"
   }
 }
 
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId project.group
+      artifactId project.name
+      version project.version
+
+      println "######artifact details $groupId:$artifactId:$version"
+      from components.java
+
+      artifact sourcesJar
+      artifact javadocJar
+      artifact testJar
+      artifact testSourcesJar
+
+      pom {
+        name = 'Tehuti'
+        description = 'Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.'
+        url = 'http://tehuti.io'
+
+        licenses {
+          license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+        developers {
+          developer {
+            id = 'FelixGV'
+            name = 'Felix GV'
+            email = 'fgv@linkedin.com'
+            organization = 'LinkedIn'
+            organizationUrl = 'linkedin.com'
+          }
+        }
+        scm {
+          connection = 'scm:git:git@github.com:tehuti-io/tehuti.git'
+          developerConnection = 'scm:git:git@github.com:tehuti-io/tehuti.git'
+          url = 'https://github.com/tehuti-io/tehuti'
+        }
+      }
+    }
+  }
+}
+
+bintray {
+  user = System.getenv('BINTRAY_USER')
+  key = System.getenv('BINTRAY_KEY')
+
+  dryRun = project.hasProperty("bintray.dryRun") //useful for testing
+  publications = ['maven'] 
+
+  pkg {
+    repo = 'maven'
+    name = 'tehuti'
+    userOrg = 'linkedin'
+    licenses = ['Apache-2.0']
+    vcsUrl = 'https://github.com/tehuti-io/tehuti.git'
+    version {
+      name = project.version
+    }
+    publish = true
+  }
+  publish = true
+}
+
+
+bintrayUpload {
+  doFirst {
+    println "Publishing $jar.baseName to Bintray (dryRun: $dryRun, repo: $repoName, publish: $publish)"
+  }
+}
+
 idea {
   module {
     downloadJavadoc = true
@@ -117,6 +203,8 @@ idea {
   }
 }
 
-task wrapper(type: Wrapper) {
-  gradleVersion = '1.12'
+wrapper {
+  gradleVersion = '6.5.1'
+  distributionType = Wrapper.DistributionType.ALL
 }
+
