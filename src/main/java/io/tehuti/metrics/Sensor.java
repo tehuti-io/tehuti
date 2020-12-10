@@ -39,7 +39,6 @@ public final class Sensor {
     private final List<TehutiMetric> metrics;
     private final MetricConfig config;
     private final Time time;
-    private boolean hasQuotaConfig;
 
     private final Map<Stat, MetricConfig> statConfigs;
 
@@ -54,27 +53,6 @@ public final class Sensor {
         this.time = time;
         this.statConfigs = new HashMap<Stat, MetricConfig>();
         checkForest(new HashSet<Sensor>());
-
-        this.hasQuotaConfig = false;
-        checkWhetherQuotaConfigPresent();
-    }
-
-    /**
-     * This function is used to check whether the attached metrics have quota config or not.
-     * We only need to trigger this function when there are new metric additions.
-     */
-    private void checkWhetherQuotaConfigPresent() {
-        if (hasQuotaConfig) {
-            return;
-        }
-        for (TehutiMetric metric : metrics) {
-            MetricConfig metricConfig = metric.config();
-            if (metricConfig != null && metricConfig.quota() != null) {
-                    hasQuotaConfig = true;
-                    return;
-
-            }
-        }
     }
 
     /** Validate that this sensor doesn't end up referencing itself */
@@ -118,23 +96,15 @@ public final class Sensor {
      *         bound
      */
     public void record(double value, long timeMs) {
-        if (hasQuotaConfig) {
-            // Try to avoid synchronized section as much as possible
-            synchronized (this) {
-                // Check quota before recording usage if needed.
-                checkQuotas(timeMs, true, value);
-                // increment all the stats
-                for (int i = 0; i < this.stats.size(); i++) {
-                    Stat stat = this.stats.get(i);
-                    stat.record(statConfigs.get(stat), value, timeMs);
-                }
-                checkQuotas(timeMs, false, value);
-            }
-        } else {
+        synchronized (this) {
+            // Check quota before recording usage if needed.
+            checkQuotas(timeMs, true, value);
+            // increment all the stats
             for (int i = 0; i < this.stats.size(); i++) {
                 Stat stat = this.stats.get(i);
                 stat.record(statConfigs.get(stat), value, timeMs);
             }
+            checkQuotas(timeMs, false, value);
         }
         for (int i = 0; i < parents.length; i++)
             parents[i].record(value, timeMs);
@@ -196,7 +166,6 @@ public final class Sensor {
             this.metrics.add(metric);
             addedMetrics.put(metric.name(), metric);
         }
-        checkWhetherQuotaConfigPresent();
         return addedMetrics;
     }
 
@@ -244,8 +213,6 @@ public final class Sensor {
         this.metrics.add(metric);
         this.stats.add(stat);
         this.statConfigs.put(stat, statConfig);
-        checkWhetherQuotaConfigPresent();
-
         return metric;
     }
 
