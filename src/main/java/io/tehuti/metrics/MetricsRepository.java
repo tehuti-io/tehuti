@@ -213,6 +213,14 @@ public class MetricsRepository {
             reporter.addMetric(metric);
     }
 
+    synchronized void unregisterMetric(TehutiMetric metric) {
+        if (this.metrics.remove(metric.name()) != null) {
+            for (MetricsReporter reporter : reporters) {
+                reporter.removeMetric(metric);
+            }
+        }
+    }
+
     /**
      * Get all the metrics currently maintained indexed by metric name
      * @return A map of all metrics in this metricsRepository

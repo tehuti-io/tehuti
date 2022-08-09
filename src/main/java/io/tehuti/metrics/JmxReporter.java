@@ -98,8 +98,9 @@ public class JmxReporter implements MetricsReporter {
         synchronized (lock) {
             String[] names = Utils.splitMetricName(prefix + metric.name());
             String qualifiedName = names[0] + "." + names[1];
-            if (mbeans.remove(qualifiedName) != null) {
-                unregister(mbeans.get(qualifiedName));
+            TehutiMbean mbean = mbeans.remove(qualifiedName);
+            if (mbean != null) {
+                unregister(mbean);
             }
         }
     }
