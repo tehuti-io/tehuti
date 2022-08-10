@@ -13,6 +13,7 @@
 package io.tehuti.metrics;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -274,13 +275,15 @@ public class MetricsTest {
         for (int i = 0; i < 10; i++)
             sensor.record(i);
 
+        assertNotNull(metricsRepository.getSensor(sensor.name()));
         assertEquals("Avg(0...9) = 4.5", 4.5, metricsRepository.getMetric("test.avg").value(), EPS);
         assertEquals("Count(0...9) = 10", 10.0, metricsRepository.getMetric("test.count").value(), EPS);
 
-        sensor.removeAll();
+        metricsRepository.removeSensor(sensor.name());
 
         assertNull(metricsRepository.getMetric("test.avg"));
         assertNull(metricsRepository.getMetric("test.count"));
+        assertNull(metricsRepository.getSensor(sensor.name()));
     }
 
     public static class ConstantMeasurable implements Measurable {

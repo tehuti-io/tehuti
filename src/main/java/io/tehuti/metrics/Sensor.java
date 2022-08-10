@@ -219,7 +219,7 @@ public final class Sensor {
     /**
      * Unregister all metrics with this sensor
      */
-    public synchronized void removeAll() {
+    synchronized void removeAll() {
         for (TehutiMetric metric : this.metrics) {
             this.registry.unregisterMetric(metric);
         }
