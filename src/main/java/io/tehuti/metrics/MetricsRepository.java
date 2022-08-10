@@ -138,6 +138,17 @@ public class MetricsRepository {
     }
 
     /**
+     * Remove a sensor with the given unique name. Unregister all metrics with this sensor too.
+     * @param name The name of the sensor
+     */
+    public synchronized void removeSensor(String name) {
+        Sensor s = this.sensors.remove(name);
+        if (s != null) {
+            s.removeAll();
+        }
+    }
+
+    /**
      * Add a metric to monitor an object that implements measurable. This metric won't be associated with any sensor.
      * This is a way to expose existing values as metrics.
      * @param name The name of the metric
@@ -211,6 +222,14 @@ public class MetricsRepository {
         this.metrics.put(metric.name(), metric);
         for (MetricsReporter reporter : reporters)
             reporter.addMetric(metric);
+    }
+
+    synchronized void unregisterMetric(TehutiMetric metric) {
+        if (this.metrics.remove(metric.name()) != null) {
+            for (MetricsReporter reporter : reporters) {
+                reporter.removeMetric(metric);
+            }
+        }
     }
 
     /**

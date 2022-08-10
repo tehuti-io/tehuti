@@ -3,9 +3,9 @@
  * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
  * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -13,6 +13,8 @@
 package io.tehuti.metrics;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import io.tehuti.utils.Time;
@@ -263,6 +265,25 @@ public class MetricsTest {
         assertEquals(0.0, p25.value(), 1.0);
         assertEquals(0.0, p50.value(), 1.0);
         assertEquals(0.0, p75.value(), 1.0);
+    }
+
+    @Test
+    public void testRemoveMetrics() {
+        Sensor sensor = metricsRepository.sensor("test");
+        sensor.add("test.avg", new Avg());
+        sensor.add("test.count", new Count());
+        for (int i = 0; i < 10; i++)
+            sensor.record(i);
+
+        assertNotNull(metricsRepository.getSensor(sensor.name()));
+        assertEquals("Avg(0...9) = 4.5", 4.5, metricsRepository.getMetric("test.avg").value(), EPS);
+        assertEquals("Count(0...9) = 10", 10.0, metricsRepository.getMetric("test.count").value(), EPS);
+
+        metricsRepository.removeSensor(sensor.name());
+
+        assertNull(metricsRepository.getMetric("test.avg"));
+        assertNull(metricsRepository.getMetric("test.count"));
+        assertNull(metricsRepository.getSensor(sensor.name()));
     }
 
     public static class ConstantMeasurable implements Measurable {
