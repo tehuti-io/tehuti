@@ -1,7 +1,5 @@
 # tehuti
 
-[![Download](https://api.bintray.com/packages/linkedin/maven/tehuti/images/download.svg)](https://bintray.com/linkedin/maven/tehuti/_latestVersion)
-
 [![Build Status](https://github.com/tehuti-io/tehuti/workflows/push%20to%20master%20request%20build%20workflow/badge.svg)](https://github.com/tehuti-io/tehuti/actions?query=workflow%3A%22push+to+master+request+build+workflow%22)
 
 
