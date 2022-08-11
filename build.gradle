@@ -1,10 +1,7 @@
 
 buildscript {
   repositories {
-    jcenter()
-  }
-  dependencies {
-    classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4"
+    mavenCentral()
   }
 }
 
@@ -14,7 +11,6 @@ apply plugin: 'idea'
 apply plugin: 'maven'
 apply plugin: 'signing'
 apply plugin: 'maven-publish'
-apply plugin: 'com.jfrog.bintray' 
 
 
 repositories {
@@ -166,33 +162,18 @@ publishing {
       }
     }
   }
-}
 
-bintray {
-  user = System.getenv('BINTRAY_USER')
-  key = System.getenv('BINTRAY_KEY')
-
-  dryRun = project.hasProperty("bintray.dryRun") //useful for testing
-  publications = ['maven'] 
-
-  pkg {
-    repo = 'maven'
-    name = 'tehuti'
-    userOrg = 'linkedin'
-    licenses = ['Apache-2.0']
-    vcsUrl = 'https://github.com/tehuti-io/tehuti.git'
-    version {
-      name = project.version
+  repositories {
+    maven {
+      name "LinkedInJfrog"
+      url "https://linkedin.jfrog.io/artifactory/tehuti/"
+      credentials {
+        if (System.getenv('JFROG_USER') != null && System.getenv('JFROG_KEY') != null) {
+          username System.getenv('JFROG_USER')
+          password System.getenv('JFROG_KEY')
+        }
+      }
     }
-    publish = true
-  }
-  publish = true
-}
-
-
-bintrayUpload {
-  doFirst {
-    println "Publishing $jar.baseName to Bintray (dryRun: $dryRun, repo: $repoName, publish: $publish)"
   }
 }
 

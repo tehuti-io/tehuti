@@ -19,8 +19,5 @@ jobs:
       with:
         java-version: 1.8
     - name: Build with Gradle
-      env:
-        BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
-        BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
         # add --info or --debug below for more details when trying to understand issues
       run: ./gradlew clean build --stacktrace --no-daemon
