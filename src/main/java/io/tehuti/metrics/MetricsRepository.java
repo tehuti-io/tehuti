@@ -63,7 +63,7 @@ public class MetricsRepository {
      * Create a metrics repository with no metric reporters and default configuration.
      */
     public MetricsRepository(Time time) {
-        this(new MetricConfig(), new ArrayList<MetricsReporter>(0), time);
+        this(new MetricConfig(), new ArrayList<>(0), time);
     }
 
     /**
@@ -72,7 +72,7 @@ public class MetricsRepository {
      * @param defaultConfig The default config to use for all metrics that don't override their config
      */
     public MetricsRepository(MetricConfig defaultConfig) {
-        this(defaultConfig, new ArrayList<MetricsReporter>(0), new SystemTime());
+        this(defaultConfig, new ArrayList<>(0), new SystemTime());
     }
 
     /**
@@ -82,13 +82,13 @@ public class MetricsRepository {
      * @param time The time instance to use with the metrics
      */
     public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
-        this.config = defaultConfig;
+        this.config = Utils.notNull(defaultConfig);
         this.sensors = new ConcurrentHashMap<>();
         this.metrics = new ConcurrentHashMap<>();
         this.reporters = Utils.notNull(reporters);
         this.time = time;
         for (MetricsReporter reporter : reporters)
-            reporter.init(new ArrayList<TehutiMetric>());
+            reporter.init(new ArrayList<>());
     }
 
     /**
@@ -212,7 +212,7 @@ public class MetricsRepository {
      * Add a MetricReporter
      */
     public synchronized void addReporter(MetricsReporter reporter) {
-        Utils.notNull(reporter).init(new ArrayList<TehutiMetric>(metrics.values()));
+        Utils.notNull(reporter).init(new ArrayList<>(metrics.values()));
         this.reporters.add(reporter);
     }
 
