@@ -37,22 +37,27 @@ public final class Sensor {
     private final Sensor[] parents;
     private final List<Stat> stats;
     private final List<TehutiMetric> metrics;
+    private final List<TehutiMetric> metricsWithPreCheckQuota;
+    private final List<TehutiMetric> metricsWithPostCheckQuota;
     private final MetricConfig config;
     private final Time time;
 
-    private final Map<Stat, MetricConfig> statConfigs;
+    /** N.B.: This list is parallel to {@link #metrics}, meaning that the items at equal indices correspond 1-to-1 */
+    private final List<MetricConfig> statConfigs;
 
     Sensor(MetricsRepository registry, String name, Sensor[] parents, MetricConfig config, Time time) {
         super();
-        this.registry = registry;
+        this.registry = Utils.notNull(registry);
         this.name = Utils.notNull(name);
         this.parents = parents == null ? new Sensor[0] : parents;
-        this.metrics = new ArrayList<TehutiMetric>();
-        this.stats = new ArrayList<Stat>();
-        this.config = config;
-        this.time = time;
-        this.statConfigs = new HashMap<Stat, MetricConfig>();
-        checkForest(new HashSet<Sensor>());
+        this.metrics = new ArrayList<>();
+        this.metricsWithPreCheckQuota = new ArrayList<>();
+        this.metricsWithPostCheckQuota = new ArrayList<>();
+        this.stats = new ArrayList<>();
+        this.config = Utils.notNull(config);
+        this.time = Utils.notNull(time);
+        this.statConfigs = new ArrayList<>();
+        checkForest(new HashSet<>());
     }
 
     /** Validate that this sensor doesn't end up referencing itself */
@@ -98,42 +103,62 @@ public final class Sensor {
     public void record(double value, long timeMs) {
         synchronized (this) {
             // Check quota before recording usage if needed.
-            checkQuotas(timeMs, true, value);
+            preCheckQuotas(timeMs, value);
             // increment all the stats
             for (int i = 0; i < this.stats.size(); i++) {
-                Stat stat = this.stats.get(i);
-                stat.record(statConfigs.get(stat), value, timeMs);
+                this.stats.get(i).record(this.statConfigs.get(i), value, timeMs);
             }
-            checkQuotas(timeMs, false, value);
+            postCheckQuotas(timeMs);
         }
-        for (int i = 0; i < parents.length; i++)
-            parents[i].record(value, timeMs);
+        for (int i = 0; i < this.parents.length; i++) {
+            this.parents[i].record(value, timeMs);
+        }
     }
 
     /**
      * Check if we have violated our quota for any metric that has a configured quota
      * @param timeMs The current POSIX time in milliseconds
      */
-    private void checkQuotas(long timeMs, boolean preCheck, double requestedValue) {
-        for (int i = 0; i < this.metrics.size(); i++) {
-            TehutiMetric metric = this.metrics.get(i);
-            MetricConfig config = metric.config();
-            if (config != null) {
-                Quota quota = config.quota();
-                if (quota != null) {
-                    // Only check the quota on the right time. If quota is set to check quota before recording,
-                    // only verify the usage in pre-check round.
-                    if (quota.isCheckQuotaBeforeRecording() ^ preCheck) {
-                        continue;
-                    }
-                    // If we check quota before recording, we should count on the value of the current request.
-                    // So we could prevent the usage of current request exceeding the quota.
-                    double value = preCheck? metric.extraValue(timeMs, requestedValue): metric.value(timeMs);
-                    if (!quota.acceptable(value)) {
-                        throw new QuotaViolationException(
-                            "Metric " + metric.name() + " is in violation of its " + quota.toString(), value);
-                    }
-                }
+    private void preCheckQuotas(long timeMs, double requestedValue) {
+        if (this.metricsWithPreCheckQuota.isEmpty()) {
+            return;
+        }
+        TehutiMetric metric;
+        Quota quota;
+        double value;
+        for (int i = 0; i < this.metricsWithPreCheckQuota.size(); i++) {
+            metric = this.metricsWithPreCheckQuota.get(i);
+            quota = metric.config().quota();
+            // If we check quota before recording, we should count on the value of the current request.
+            // So we could prevent the usage of current request exceeding the quota.
+            value = metric.extraValue(timeMs, requestedValue);
+            if (!quota.acceptable(value)) {
+                // TODO: Provide an alternative means to signal quota breaches which does not require exceptions
+                throw new QuotaViolationException(
+                    "Metric " + metric.name() + " is in violation of its " + quota, value);
+            }
+        }
+    }
+
+    /**
+     * Check if we have violated our quota for any metric that has a configured quota
+     * @param timeMs The current POSIX time in milliseconds
+     */
+    private void postCheckQuotas(long timeMs) {
+        if (this.metricsWithPostCheckQuota.isEmpty()) {
+            return;
+        }
+        TehutiMetric metric;
+        Quota quota;
+        double value;
+        for (int i = 0; i < this.metricsWithPostCheckQuota.size(); i++) {
+            metric = this.metricsWithPostCheckQuota.get(i);
+            quota = metric.config().quota();
+            value = metric.value(timeMs);
+            if (!quota.acceptable(value)) {
+                // TODO: Provide an alternative means to signal quota breaches which does not require exceptions
+                throw new QuotaViolationException(
+                    "Metric " + metric.name() + " is in violation of its " + quota, value);
             }
         }
     }
@@ -158,12 +183,11 @@ public final class Sensor {
     public synchronized Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
         this.stats.add(Utils.notNull(stat));
         MetricConfig statConfig = (config == null ? this.config : config);
-        this.statConfigs.put(stat, statConfig);
-        Map<String, Metric> addedMetrics = new HashMap<String, Metric>();
+        Map<String, Metric> addedMetrics = new HashMap<>();
         for (NamedMeasurable m : stat.stats()) {
             TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), statConfig, time);
             this.registry.registerMetric(metric);
-            this.metrics.add(metric);
+            addMetric(metric);
             addedMetrics.put(metric.name(), metric);
         }
         return addedMetrics;
@@ -210,9 +234,8 @@ public final class Sensor {
                                              statConfig,
                                              time);
         this.registry.registerMetric(metric);
-        this.metrics.add(metric);
+        addMetric(metric);
         this.stats.add(stat);
-        this.statConfigs.put(stat, statConfig);
         return metric;
     }
 
@@ -224,12 +247,26 @@ public final class Sensor {
             this.registry.unregisterMetric(metric);
         }
         this.metrics.clear();
+        this.metricsWithPreCheckQuota.clear();
+        this.metricsWithPostCheckQuota.clear();
         this.stats.clear();
         this.statConfigs.clear();
     }
 
     synchronized List<? extends Metric> metrics() {
         return Collections.unmodifiableList(this.metrics);
+    }
+
+    private synchronized void addMetric(TehutiMetric metric) {
+        this.metrics.add(metric);
+        this.statConfigs.add(metric.config());
+        if (metric.config().quota() != null) {
+            if (metric.config().quota().isCheckQuotaBeforeRecording()) {
+                this.metricsWithPreCheckQuota.add(metric);
+            } else {
+                this.metricsWithPostCheckQuota.add(metric);
+            }
+        }
     }
 
 }

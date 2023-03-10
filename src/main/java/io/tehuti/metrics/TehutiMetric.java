@@ -18,6 +18,8 @@ package io.tehuti.metrics;
 
 import io.tehuti.Metric;
 import io.tehuti.utils.Time;
+import io.tehuti.utils.Utils;
+
 
 /**
  * This implementation of the {@link io.tehuti.Metric} interface is meant to be used internally by Tehuti.
@@ -40,7 +42,7 @@ public final class TehutiMetric implements Metric {
         this.description = description;
         this.lock = lock;
         this.measurable = measurable;
-        this.config = config;
+        this.config = Utils.notNull(config);
         this.time = time;
     }
 
