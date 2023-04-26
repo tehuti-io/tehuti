@@ -24,13 +24,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
+
 
 /**
  * A sensor applies a continuous sequence of numerical values to a set of associated metrics. For example a sensor on
  * message size would record a sequence of message sizes using the {@link #record(double)} api and would maintain a set
  * of metrics about request sizes such as the average or max.
  */
-public final class Sensor {
+public class Sensor {
 
     private final MetricsRepository registry;
     private final String name;
@@ -41,9 +43,7 @@ public final class Sensor {
     private final List<TehutiMetric> metricsWithPostCheckQuota;
     private final MetricConfig config;
     private final Time time;
-
-    /** N.B.: This list is parallel to {@link #metrics}, meaning that the items at equal indices correspond 1-to-1 */
-    private final List<MetricConfig> statConfigs;
+    private final ReentrantLock lock;
 
     Sensor(MetricsRepository registry, String name, Sensor[] parents, MetricConfig config, Time time) {
         super();
@@ -56,7 +56,7 @@ public final class Sensor {
         this.stats = new ArrayList<>();
         this.config = Utils.notNull(config);
         this.time = Utils.notNull(time);
-        this.statConfigs = new ArrayList<>();
+        this.lock = new ReentrantLock();
         checkForest(new HashSet<>());
     }
 
@@ -101,14 +101,17 @@ public final class Sensor {
      *         bound
      */
     public void record(double value, long timeMs) {
-        synchronized (this) {
+        this.lock.lock();
+        try {
             // Check quota before recording usage if needed.
             preCheckQuotas(timeMs, value);
             // increment all the stats
             for (int i = 0; i < this.stats.size(); i++) {
-                this.stats.get(i).record(this.statConfigs.get(i), value, timeMs);
+                this.stats.get(i).record(value, timeMs);
             }
             postCheckQuotas(timeMs);
+        } finally {
+            this.lock.unlock();
         }
         for (int i = 0; i < this.parents.length; i++) {
             this.parents[i].record(value, timeMs);
@@ -180,17 +183,25 @@ public final class Sensor {
      * @return a map of {@link Metric} indexed by their name, each of which were contained in the {@link CompoundStat}
      *         and added to this sensor.
      */
-    public synchronized Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
-        this.stats.add(Utils.notNull(stat));
-        MetricConfig statConfig = (config == null ? this.config : config);
-        Map<String, Metric> addedMetrics = new HashMap<>();
-        for (NamedMeasurable m : stat.stats()) {
-            TehutiMetric metric = new TehutiMetric(this, m.name(), m.description(), m.stat(), statConfig, time);
-            this.registry.registerMetric(metric);
-            addMetric(metric);
-            addedMetrics.put(metric.name(), metric);
+    public Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
+        this.lock.lock();
+        try {
+            this.stats.add(Utils.notNull(stat));
+            MetricConfig statConfig = (config == null ? this.config : config);
+            Map<String, Metric> addedMetrics = new HashMap<>();
+            for (NamedMeasurable m : stat.stats()) {
+                TehutiMetric metric = new TehutiMetric(this.lock, m.name(), m.description(), m.stat(), statConfig, time);
+                this.registry.registerMetric(metric);
+                addMetric(metric);
+                addedMetrics.put(metric.name(), metric);
+            }
+            if (stat instanceof Initializable) {
+                ((Initializable) stat).init(statConfig, time.milliseconds());
+            }
+            return addedMetrics;
+        } finally {
+            this.lock.unlock();
         }
-        return addedMetrics;
     }
 
     /**
@@ -225,48 +236,65 @@ public final class Sensor {
      * @param config A special configuration for this metric. If null use the sensor default configuration.
      * @return a {@link Metric} instance representing the registered metric
      */
-    public synchronized Metric add(String name, String description, MeasurableStat stat, MetricConfig config) {
-        MetricConfig statConfig = (config == null ? this.config : config);
-        TehutiMetric metric = new TehutiMetric(this,
-                                             Utils.notNull(name),
-                                             Utils.notNull(description),
-                                             Utils.notNull(stat),
-                                             statConfig,
-                                             time);
-        this.registry.registerMetric(metric);
-        addMetric(metric);
-        this.stats.add(stat);
-        return metric;
+    public Metric add(String name, String description, MeasurableStat stat, MetricConfig config) {
+        this.lock.lock();
+        try {
+            MetricConfig statConfig = (config == null ? this.config : config);
+            TehutiMetric metric = new TehutiMetric(this.lock,
+                Utils.notNull(name),
+                Utils.notNull(description),
+                Utils.notNull(stat),
+                statConfig,
+                time);
+            this.registry.registerMetric(metric);
+            addMetric(metric);
+            this.stats.add(stat);
+            return metric;
+        } finally {
+            this.lock.unlock();
+        }
     }
 
     /**
      * Unregister all metrics with this sensor
      */
-    synchronized void removeAll() {
-        for (TehutiMetric metric : this.metrics) {
-            this.registry.unregisterMetric(metric);
-        }
-        this.metrics.clear();
-        this.metricsWithPreCheckQuota.clear();
-        this.metricsWithPostCheckQuota.clear();
-        this.stats.clear();
-        this.statConfigs.clear();
-    }
-
-    synchronized List<? extends Metric> metrics() {
-        return Collections.unmodifiableList(this.metrics);
-    }
-
-    private synchronized void addMetric(TehutiMetric metric) {
-        this.metrics.add(metric);
-        this.statConfigs.add(metric.config());
-        if (metric.config().quota() != null) {
-            if (metric.config().quota().isCheckQuotaBeforeRecording()) {
-                this.metricsWithPreCheckQuota.add(metric);
-            } else {
-                this.metricsWithPostCheckQuota.add(metric);
+    void removeAll() {
+        this.lock.lock();
+        try {
+            for (TehutiMetric metric : this.metrics) {
+                this.registry.unregisterMetric(metric);
             }
+            this.metrics.clear();
+            this.metricsWithPreCheckQuota.clear();
+            this.metricsWithPostCheckQuota.clear();
+            this.stats.clear();
+        } finally {
+            this.lock.unlock();
         }
     }
 
+    List<? extends Metric> metrics() {
+        this.lock.lock();
+        try {
+            return Collections.unmodifiableList(this.metrics);
+        } finally {
+            this.lock.unlock();
+        }
+    }
+
+    private void addMetric(TehutiMetric metric) {
+        this.lock.lock();
+        try {
+            this.metrics.add(metric);
+            if (metric.config().quota() != null) {
+                if (metric.config().quota().isCheckQuotaBeforeRecording()) {
+                    this.metricsWithPreCheckQuota.add(metric);
+                } else {
+                    this.metricsWithPostCheckQuota.add(metric);
+                }
+            }
+        } finally {
+            this.lock.unlock();
+        }
+    }
 }

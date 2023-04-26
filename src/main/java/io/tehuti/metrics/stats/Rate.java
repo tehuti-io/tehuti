@@ -3,15 +3,16 @@
  * file distributed with this work for additional information regarding copyright ownership. The ASF licenses this file
  * to You under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the
  * License. You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
 package io.tehuti.metrics.stats;
 
+import io.tehuti.metrics.Initializable;
 import io.tehuti.metrics.MeasurableStat;
 import io.tehuti.metrics.MetricConfig;
 import io.tehuti.utils.Time;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * however, to record the rate of occurrences (e.g. the count of values measured over the time interval) or other such
  * values.
  */
-public class Rate implements MeasurableStat {
+public class Rate implements MeasurableStat, Initializable {
 
     private final TimeUnit unit;
     private final SampledStat stat;
@@ -51,13 +52,13 @@ public class Rate implements MeasurableStat {
     }
 
     @Override
-    public void record(MetricConfig config, double value, long timeMs) {
-        this.stat.record(config, value, timeMs);
+    public void record(double value, long timeMs) {
+        this.stat.record(value, timeMs);
     }
 
     @Override
     public double measure(MetricConfig config, long now) {
-        return internalMeasure(config, now, stat.measure(config, now));
+        return internalMeasure(now, stat.measure(config, now));
     }
 
     @Override
@@ -67,14 +68,18 @@ public class Rate implements MeasurableStat {
                 "Do NOT support measure with extra value for stat: " + stat.getClass().getName());
         }
         double value = stat.measure(config, now) + extraValue;
-        return internalMeasure(config, now, value);
+        return internalMeasure(now, value);
     }
 
-    private double internalMeasure(MetricConfig config, long now, double value) {
+    public void init(MetricConfig config, long now) {
+        this.stat.init(config, now);
+    }
+
+    private double internalMeasure(long now, double value) {
         if (value == 0) {
             return 0;
         } else {
-            double elapsed = convert(now - stat.oldest(config, now).lastWindowMs);
+            double elapsed = convert(now - stat.oldest().getLastWindowMs());
             return value / elapsed;
         }
     }

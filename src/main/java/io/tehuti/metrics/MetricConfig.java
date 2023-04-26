@@ -25,17 +25,17 @@ public class MetricConfig {
 
     private Quota quota;
     private int samples;
-    private long eventWindow;
     private long timeWindowMs;
     private TimeUnit unit;
+    private long expirationAge;
 
     public MetricConfig() {
         super();
         this.quota = null;
         this.samples = 2;
-        this.eventWindow = Long.MAX_VALUE;
         this.timeWindowMs = TimeUnit.MILLISECONDS.convert(30, TimeUnit.SECONDS);
         this.unit = TimeUnit.SECONDS;
+        updateExpirationAge();
     }
 
     public Quota quota() {
@@ -47,21 +47,13 @@ public class MetricConfig {
         return this;
     }
 
-    public long eventWindow() {
-        return eventWindow;
-    }
-
-    public MetricConfig eventWindow(long window) {
-        this.eventWindow = window;
-        return this;
-    }
-
     public long timeWindowMs() {
         return timeWindowMs;
     }
 
     public MetricConfig timeWindow(long window, TimeUnit unit) {
         this.timeWindowMs = TimeUnit.MILLISECONDS.convert(window, unit);
+        updateExpirationAge();
         return this;
     }
 
@@ -73,6 +65,7 @@ public class MetricConfig {
         if (samples < 1)
             throw new IllegalArgumentException("The number of samples must be at least 1.");
         this.samples = samples;
+        updateExpirationAge();
         return this;
     }
 
@@ -83,5 +76,13 @@ public class MetricConfig {
     public MetricConfig timeUnit(TimeUnit unit) {
         this.unit = unit;
         return this;
+    }
+
+    private void updateExpirationAge() {
+        this.expirationAge = this.timeWindowMs * this.samples;
+    }
+
+    public long expirationAge() {
+        return this.expirationAge;
     }
 }

@@ -17,8 +17,10 @@
 package io.tehuti.metrics;
 
 import io.tehuti.Metric;
+import io.tehuti.metrics.stats.SampledStat;
 import io.tehuti.utils.Time;
 import io.tehuti.utils.Utils;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /**
@@ -31,12 +33,12 @@ public final class TehutiMetric implements Metric {
 
     private final String name;
     private final String description;
-    private final Object lock;
+    private final ReentrantLock lock;
     private final Time time;
     private final Measurable measurable;
-    private MetricConfig config;
+    private final MetricConfig config;
 
-    TehutiMetric(Object lock, String name, String description, Measurable measurable, MetricConfig config, Time time) {
+    TehutiMetric(ReentrantLock lock, String name, String description, Measurable measurable, MetricConfig config, Time time) {
         super();
         this.name = name;
         this.description = description;
@@ -44,6 +46,9 @@ public final class TehutiMetric implements Metric {
         this.measurable = measurable;
         this.config = Utils.notNull(config);
         this.time = time;
+        if (this.measurable instanceof Initializable) {
+            ((Initializable) this.measurable).init(config, time.milliseconds());
+        }
     }
 
     MetricConfig config() {
@@ -62,9 +67,7 @@ public final class TehutiMetric implements Metric {
 
     @Override
     public double value() {
-        synchronized (this.lock) {
-            return value(time.milliseconds());
-        }
+        return value(time.milliseconds());
     }
 
     /**
@@ -75,7 +78,12 @@ public final class TehutiMetric implements Metric {
      * @return
      */
     double value(long timeMs) {
-        return this.measurable.measure(config, timeMs);
+        this.lock.lock();
+        try {
+            return this.measurable.measure(config, timeMs);
+        } finally {
+            this.lock.unlock();
+        }
     }
 
     /**
@@ -87,13 +95,11 @@ public final class TehutiMetric implements Metric {
      * @return
      */
     double extraValue(long timeMs, double extraValue) {
-        return this.measurable.measureWithExtraValue(config, timeMs, extraValue);
-    }
-
-
-    public void config(MetricConfig config) {
-        synchronized (lock) {
-            this.config = config;
+        this.lock.lock();
+        try {
+            return this.measurable.measureWithExtraValue(config, timeMs, extraValue);
+        } finally {
+            this.lock.unlock();
         }
     }
 }
