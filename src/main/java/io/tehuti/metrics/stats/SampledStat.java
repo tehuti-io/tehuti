@@ -180,7 +180,7 @@ public abstract class SampledStat implements MeasurableStat, Initializable {
         }
 
         /**
-         * @return a boolean indicating if the sample is past its time-based or event count-based limits.
+         * @return a boolean indicating if the sample is past its time-based limit.
          */
         public boolean isComplete(long timeMs, MetricConfig config) {
             return timeMs - lastWindowMs >= config.timeWindowMs();
