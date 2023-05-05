@@ -20,17 +20,17 @@ public class Histogram {
 
     private final BinScheme binScheme;
     private final float[] hist;
-    private double count;
+    private long count;
 
     public Histogram(BinScheme binScheme) {
         this.hist = new float[binScheme.bins()];
-        this.count = 0.0f;
+        this.count = 0;
         this.binScheme = binScheme;
     }
 
     public void record(double value) {
         this.hist[binScheme.toBin(value)] += 1.0f;
-        this.count += 1.0f;
+        this.count += 1;
     }
 
     public double value(double quantile) {
@@ -54,6 +54,10 @@ public class Histogram {
         for (int i = 0; i < this.hist.length; i++)
             this.hist[i] = 0.0f;
         this.count = 0;
+    }
+
+    public long getEventCount() {
+        return this.count;
     }
 
     @Override

@@ -22,6 +22,9 @@ import io.tehuti.Metric;
 import io.tehuti.utils.SystemTime;
 import io.tehuti.utils.Time;
 import io.tehuti.utils.Utils;
+import java.util.concurrent.locks.ReentrantLock;
+
+
 
 /**
  * A registry of sensors and metrics.
@@ -198,7 +201,7 @@ public class MetricsRepository {
      *       need to call {@link #getMetric(String)} or {@link #metrics()}.
      */
     public synchronized Metric addMetric(String name, String description, MetricConfig config, Measurable measurable) {
-        TehutiMetric m = new TehutiMetric(new Object(),
+        TehutiMetric m = new TehutiMetric(new ReentrantLock(),
                                           Utils.notNull(name),
                                           Utils.notNull(description),
                                           Utils.notNull(measurable),

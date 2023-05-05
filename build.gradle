@@ -17,9 +17,22 @@ repositories {
     maven { url "https://repo.maven.apache.org/maven2" }
 }
 
+configurations {
+    jmhImplementation.extendsFrom testImplementation
+}
+
+sourceSets {
+    jmh {
+        java.srcDirs = ['src/jmh/java']
+        compileClasspath += sourceSets.main.runtimeClasspath
+    }
+}
+
 dependencies {
     compile 'log4j:log4j:1.2.17'
     testCompile 'junit:junit:4.6'
+    jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.36'
+    jmhImplementation 'org.openjdk.jmh:jmh-core:1.36'
 }
 
 task javadocJar(type: Jar) {
@@ -42,6 +55,13 @@ task testSourcesJar(type: Jar) {
     from sourceSets.test.allSource
 }
 
+task jmh(type: JavaExec, dependsOn: jmhClasses) {
+  main = 'org.openjdk.jmh.Main'
+  classpath = sourceSets.jmh.compileClasspath + sourceSets.jmh.runtimeClasspath
+}
+
+classes.finalizedBy(jmhClasses)
+
 artifacts {
     archives javadocJar, sourcesJar, testJar, testSourcesJar
 }
@@ -51,28 +71,28 @@ if (project.hasProperty("signing.enabled") && project.property("signing.enabled"
     repositories {
       mavenDeployer {
         beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-  
+
         repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
           authentication(userName: ossrhUsername, password: ossrhPassword)
         }
-  
+
         snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
           authentication(userName: ossrhUsername, password: ossrhPassword)
         }
-  
+
         pom.project {
           name 'Tehuti'
           packaging 'jar'
-          // optionally artifactId can be defined here 
+          // optionally artifactId can be defined here
           description 'Tehuti is a simple metrics library providing statistical measurement, reporting and quota functionalities.'
           url 'http://tehuti.io'
-  
+
           scm {
             connection 'scm:git:git@github.com:tehuti-io/tehuti.git'
             developerConnection 'scm:git:git@github.com:tehuti-io/tehuti.git'
             url 'https://github.com/tehuti-io/tehuti'
           }
-  
+
           licenses {
             license {
               name 'The Apache License, Version 2.0'
@@ -93,7 +113,7 @@ if (project.hasProperty("signing.enabled") && project.property("signing.enabled"
             system 'GitHub'
             url 'https://github.com/tehuti-io/tehuti/issues'
           }
-  
+
           developers {
             developer {
               id 'FelixGV'

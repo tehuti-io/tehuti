@@ -112,26 +112,16 @@ public class MetricsTest {
     }
 
     @Test
-    public void testEventWindowing() {
-        SampledCount sampledCount = new SampledCount();
-        MetricConfig config = new MetricConfig().eventWindow(1).samples(2);
-        sampledCount.record(config, 1.0, time.milliseconds());
-        sampledCount.record(config, 1.0, time.milliseconds());
-        assertEquals(2.0, sampledCount.measure(config, time.milliseconds()), EPS);
-        sampledCount.record(config, 1.0, time.milliseconds()); // first event times out
-        assertEquals(2.0, sampledCount.measure(config, time.milliseconds()), EPS);
-    }
-
-    @Test
     public void testTimeWindowing() {
         SampledCount sampledCount = new SampledCount();
         MetricConfig config = new MetricConfig().timeWindow(1, TimeUnit.MILLISECONDS).samples(2);
-        sampledCount.record(config, 1.0, time.milliseconds());
+        sampledCount.init(config, time.milliseconds());
+        sampledCount.record(1.0, time.milliseconds());
         time.sleep(1);
-        sampledCount.record(config, 1.0, time.milliseconds());
+        sampledCount.record(1.0, time.milliseconds());
         assertEquals(2.0, sampledCount.measure(config, time.milliseconds()), EPS);
         time.sleep(1);
-        sampledCount.record(config, 1.0, time.milliseconds()); // oldest event times out
+        sampledCount.record(1.0, time.milliseconds()); // oldest event times out
         assertEquals(2.0, sampledCount.measure(config, time.milliseconds()), EPS);
     }
 
@@ -141,7 +131,8 @@ public class MetricsTest {
         long windowMs = 100;
         int samples = 2;
         MetricConfig config = new MetricConfig().timeWindow(windowMs, TimeUnit.MILLISECONDS).samples(samples);
-        max.record(config, 50, time.milliseconds());
+        max.init(config, time.milliseconds());
+        max.record(50, time.milliseconds());
         time.sleep(samples * windowMs);
         assertEquals(Double.NEGATIVE_INFINITY, max.measure(config, time.milliseconds()), EPS);
     }
@@ -238,13 +229,13 @@ public class MetricsTest {
     public void testPercentiles() {
         int buckets = 100;
         Percentiles percs = new Percentiles(4 * buckets,
-                                            0.0,
-                                            100.0,
-                                            BucketSizing.CONSTANT,
-                                            new Percentile("test.p25", 25),
-                                            new Percentile("test.p50", 50),
-                                            new Percentile("test.p75", 75));
-        MetricConfig config = new MetricConfig().eventWindow(50).samples(2);
+            0.0,
+            100.0,
+            BucketSizing.CONSTANT,
+            new Percentile("test.p25", 25),
+            new Percentile("test.p50", 50),
+            new Percentile("test.p75", 75));
+        MetricConfig config = new MetricConfig().timeWindow(30, TimeUnit.SECONDS).samples(2);
         Sensor sensor = metricsRepository.sensor("test", config);
         sensor.add(percs);
         Metric p25 = this.metricsRepository.getMetric("test.p25");
@@ -258,6 +249,8 @@ public class MetricsTest {
         assertEquals(25, p25.value(), 1.0);
         assertEquals(50, p50.value(), 1.0);
         assertEquals(75, p75.value(), 1.0);
+
+        time.sleep(60 * Time.MS_PER_SECOND);
 
         for (int i = 0; i < buckets; i++)
             sensor.record(0.0);

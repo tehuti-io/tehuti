@@ -16,15 +16,15 @@ public class SampledCount extends SampledStat {
     }
 
     @Override
-    protected void update(Sample sample, MetricConfig config, double value, long now) {
-        sample.value += 1.0;
+    protected void update(Sample sample, double value, long now) {
+        sample.incrementValue(1);
     }
 
     @Override
     public double combine(List<Sample> samples, MetricConfig config, long now) {
         double total = 0.0;
         for (int i = 0; i < samples.size(); i++)
-            total += samples.get(i).value;
+            total += samples.get(i).getValue();
         return total;
     }
 
