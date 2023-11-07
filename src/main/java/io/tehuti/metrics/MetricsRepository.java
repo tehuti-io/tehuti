@@ -15,6 +15,7 @@ package io.tehuti.metrics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -22,6 +23,7 @@ import io.tehuti.Metric;
 import io.tehuti.utils.SystemTime;
 import io.tehuti.utils.Time;
 import io.tehuti.utils.Utils;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -54,19 +56,28 @@ public class MetricsRepository {
     private final ConcurrentMap<String, Sensor> sensors;
     private final List<MetricsReporter> reporters;
     private final Time time;
+    private final Optional<ExecutorService> metricsMeasurementExecutor;
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
     public MetricsRepository() {
-        this(new MetricConfig());
+        this(Optional.empty());
+    }
+
+    public MetricsRepository(Optional<ExecutorService> metricsMeasurementExecutor) {
+        this(new MetricConfig(), metricsMeasurementExecutor);
     }
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
     public MetricsRepository(Time time) {
-        this(new MetricConfig(), new ArrayList<>(0), time);
+        this(time, Optional.empty());
+    }
+
+    public MetricsRepository(Time time, Optional<ExecutorService> metricsMeasurementExecutor) {
+        this(new MetricConfig(), new ArrayList<>(0), time, metricsMeasurementExecutor);
     }
 
     /**
@@ -75,7 +86,11 @@ public class MetricsRepository {
      * @param defaultConfig The default config to use for all metrics that don't override their config
      */
     public MetricsRepository(MetricConfig defaultConfig) {
-        this(defaultConfig, new ArrayList<>(0), new SystemTime());
+        this(defaultConfig, Optional.empty());
+    }
+
+    public MetricsRepository(MetricConfig defaultConfig, Optional<ExecutorService> metricsMeasurementExecutor) {
+        this(defaultConfig, new ArrayList<>(0), new SystemTime(), metricsMeasurementExecutor);
     }
 
     /**
@@ -83,13 +98,15 @@ public class MetricsRepository {
      * @param defaultConfig The default config
      * @param reporters The metrics reporters
      * @param time The time instance to use with the metrics
+     * @param metricsMeasurementExecutor Optional thread pool to improve performance of metrics measurement
      */
-    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
+    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time, Optional<ExecutorService> metricsMeasurementExecutor) {
         this.config = Utils.notNull(defaultConfig);
         this.sensors = new ConcurrentHashMap<>();
         this.metrics = new ConcurrentHashMap<>();
         this.reporters = Utils.notNull(reporters);
         this.time = time;
+        this.metricsMeasurementExecutor = metricsMeasurementExecutor;
         for (MetricsReporter reporter : reporters)
             reporter.init(new ArrayList<>());
     }
@@ -247,12 +264,32 @@ public class MetricsRepository {
         return this.metrics.get(name);
     }
 
+    public Optional<ExecutorService> getMetricsMeasurementExecutor() {
+        return this.metricsMeasurementExecutor;
+    }
+
     /**
+     * Ungraceful shutdown of all the metrics maintained by this metrics repository.
+     * The thread pool used for measuring metrics will be shutdown immediately; any users of this thread pool
+     * will be impacted immediately; user of this thread pool needs to handle the shutdown appropriately.
+     *
      * Close this metrics repository.
      */
     public void close() {
+        this.metricsMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
         for (MetricsReporter reporter : this.reporters)
             reporter.close();
     }
 
+    /**
+     * Graceful shutdown of all the metrics maintained by this metrics repository.
+     * The thread pool used for measuring metrics will be shutdown at the end.
+     *
+     * Close this metrics repository.
+     */
+    public void gracefulClose() {
+        for (MetricsReporter reporter : this.reporters)
+            reporter.close();
+        this.metricsMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
+    }
 }
