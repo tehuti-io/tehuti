@@ -1,5 +1,6 @@
 package io.tehuti.metrics.stats;
 
+import io.tehuti.metrics.AsyncGaugeConfig;
 import io.tehuti.metrics.Measurable;
 import io.tehuti.metrics.MetricConfig;
 import io.tehuti.metrics.NamedMeasurableStat;
@@ -7,7 +8,7 @@ import io.tehuti.metrics.SimpleMeasurable;
 import io.tehuti.utils.RedundantLogFilter;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.log4j.LogManager;
@@ -22,7 +23,7 @@ public class AsyncGauge implements NamedMeasurableStat {
   private static final Logger LOGGER = LogManager.getLogger(AsyncGauge.class);
   private static final RedundantLogFilter REDUNDANT_LOG_FILTER = RedundantLogFilter.getRedundantLogFilter();
 
-  private final ExecutorService metricValueMeasurementThreadPool;
+  private final AsyncGaugeConfig asyncGaugeConfig;
   private final String metricName;
   private double cachedMeasurement = 0.0;
   private long lastMeasurementStartTimeInMs = System.currentTimeMillis();
@@ -30,15 +31,15 @@ public class AsyncGauge implements NamedMeasurableStat {
 
   private final Measurable measurable;
 
-  public AsyncGauge(Measurable measurable, ExecutorService metricValueMeasurementThreadPool, String metricName) {
+  public AsyncGauge(Measurable measurable, AsyncGaugeConfig asyncGaugeConfig, String metricName) {
     this.measurable = measurable;
-    this.metricValueMeasurementThreadPool = metricValueMeasurementThreadPool;
+    this.asyncGaugeConfig = asyncGaugeConfig;
     this.metricName = metricName;
   }
 
-  public AsyncGauge(SimpleMeasurable measurable, ExecutorService metricValueMeasurementThreadPool, String metricName) {
+  public AsyncGauge(SimpleMeasurable measurable, AsyncGaugeConfig asyncGaugeConfig, String metricName) {
     this.measurable = measurable;
-    this.metricValueMeasurementThreadPool = metricValueMeasurementThreadPool;
+    this.asyncGaugeConfig = asyncGaugeConfig;
     this.metricName = metricName;
   }
 
@@ -62,13 +63,17 @@ public class AsyncGauge implements NamedMeasurableStat {
   @Override
   public double measure(MetricConfig config, long now) {
     // If the thread pool is shutdown, return the cached value
-    if (metricValueMeasurementThreadPool.isShutdown()) {
+    if (asyncGaugeConfig.getMetricsMeasurementExecutor().isShutdown()) {
       return cachedMeasurement;
     }
-    // If the last measurement future exists, meaning the last measurement didn't finish fast enough. In this case:
-    // 1. If the last measurement future is done, update the cached value, log which metric measurement is slow.
-    // 2. If the last measurement future is still running, cancel it to prevent OutOfMemory issue, and log.
-    if (lastMeasurementFuture != null) {
+
+    if (lastMeasurementFuture == null) {
+      // First time running measurement
+      return submitNewMeasurementTask(config, now);
+    } else {
+      // If the last measurement future exists, meaning the last measurement didn't finish fast enough. In this case:
+      // 1. If the last measurement future is done, update the cached value, log which metric measurement is slow.
+      // 2. If the last measurement future is still running, cancel it to prevent OutOfMemory issue, and log.
       if (lastMeasurementFuture.isDone()) {
         try {
           cachedMeasurement = lastMeasurementFuture.get();
@@ -83,32 +88,47 @@ public class AsyncGauge implements NamedMeasurableStat {
           if (!REDUNDANT_LOG_FILTER.isRedundantLog(errorMessage)) {
             LOGGER.error(errorMessage, e);
           }
+          // Update the cached value to a negative value to indicate the measurement failure
+          cachedMeasurement = -1.0;
         } catch (InterruptedException e) {
           throw new RuntimeException("Metric measurement is interrupted for metric " + metricName, e);
         }
+        // Always try to get the freshest measurement value
+        // Reason: let's say the initial wait time is 500ms, and the previous measurement took 600ms. In this case, if we
+        //         return the previous measurement value, it would be 59 seconds stale, assuming the measurement interval is 1 minute.
+        return submitNewMeasurementTask(config, now);
       } else {
-        lastMeasurementFuture.cancel(true);
-        String warningMessagePrefix = String.format(
-            "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
-            metricName);
-        if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
-          LOGGER.warn(String.format("%s Return the cached value: %f", warningMessagePrefix, cachedMeasurement));
+        // If the last measurement future is still running but hasn't exceeded the max timeout, keep it running and return the cached value.
+        // Otherwise, cancel the last measurement future to prevent OutOfMemory issue, and submit a new measurement task.
+        if (System.currentTimeMillis() - lastMeasurementStartTimeInMs < asyncGaugeConfig.getMaxMetricsMeasurementTimeoutInMs()) {
+          return cachedMeasurement;
+        } else {
+          lastMeasurementFuture.cancel(true);
+          String warningMessagePrefix = String.format(
+              "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
+              metricName);
+          if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
+            LOGGER.warn(String.format("%s Return the cached value: %f", warningMessagePrefix, cachedMeasurement));
+          }
+          return submitNewMeasurementTask(config, now);
         }
       }
     }
+  }
 
-    // Submit a new measurement task for the current minute
-    lastMeasurementStartTimeInMs = System.currentTimeMillis();
-    lastMeasurementFuture =
-        CompletableFuture.supplyAsync(() -> this.measurable.measure(config, now), metricValueMeasurementThreadPool);
-    // Try to wait for the CompletableFuture for up to 500ms. If it times out, return the cached value;
-    // otherwise, update the cached value and return the latest result.
+  private double submitNewMeasurementTask(MetricConfig config, long now) {
     try {
-      cachedMeasurement = lastMeasurementFuture.get(500, TimeUnit.MILLISECONDS);
+      // Submit a new measurement task for the current minute
+      lastMeasurementStartTimeInMs = System.currentTimeMillis();
+      lastMeasurementFuture =
+          CompletableFuture.supplyAsync(() -> this.measurable.measure(config, now), asyncGaugeConfig.getMetricsMeasurementExecutor());
+      // Try to wait for the CompletableFuture for up to 500ms. If it times out, return the cached value;
+      // otherwise, update the cached value and return the latest result.
+      cachedMeasurement = lastMeasurementFuture.get(asyncGaugeConfig.getInitialMetricsMeasurementTimeoutInMs(), TimeUnit.MILLISECONDS);
       lastMeasurementFuture = null;
       return cachedMeasurement;
-    } catch (TimeoutException e) {
-      // Do nothing; the cached value will be returned
+    } catch (RejectedExecutionException | TimeoutException e) {
+      // If the thread pool is shutdown or the measurement takes longer than 500ms, return the cached value
       return cachedMeasurement;
     } catch (ExecutionException e) {
       String errorMessage = String.format("Error when measuring value for metric %s.", metricName);
