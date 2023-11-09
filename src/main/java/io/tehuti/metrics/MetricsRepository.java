@@ -269,25 +269,12 @@ public class MetricsRepository {
     }
 
     /**
-     * Ungraceful shutdown of all the metrics maintained by this metrics repository.
-     * The thread pool used for measuring metrics will be shutdown immediately; any users of this thread pool
-     * will be impacted immediately; user of this thread pool needs to handle the shutdown appropriately.
-     *
-     * Close this metrics repository.
-     */
-    public void close() {
-        this.metricsMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
-        for (MetricsReporter reporter : this.reporters)
-            reporter.close();
-    }
-
-    /**
      * Graceful shutdown of all the metrics maintained by this metrics repository.
      * The thread pool used for measuring metrics will be shutdown at the end.
      *
      * Close this metrics repository.
      */
-    public void gracefulClose() {
+    public void close() {
         for (MetricsReporter reporter : this.reporters)
             reporter.close();
         this.metricsMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
