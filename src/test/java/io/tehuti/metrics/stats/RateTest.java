@@ -1,5 +1,6 @@
 package io.tehuti.metrics.stats;
 
+import java.util.Optional;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 import io.tehuti.Metric;
@@ -17,7 +18,7 @@ public class RateTest {
     long timeWindow = 10000;
 
     MockTime time = new MockTime();
-    MetricsRepository metricsRepository = new MetricsRepository(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time);
+    MetricsRepository metricsRepository = new MetricsRepository(new MetricConfig(), Arrays.asList((MetricsReporter) new JmxReporter()), time, Optional.empty());
 
     Logger logger = Logger.getLogger(this.getClass());
 
