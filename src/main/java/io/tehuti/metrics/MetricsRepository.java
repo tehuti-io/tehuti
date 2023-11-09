@@ -56,7 +56,7 @@ public class MetricsRepository {
     private final ConcurrentMap<String, Sensor> sensors;
     private final List<MetricsReporter> reporters;
     private final Time time;
-    private final Optional<ExecutorService> metricsMeasurementExecutor;
+    private final Optional<ExecutorService> asyncGaugeMeasurementExecutor;
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
@@ -65,8 +65,8 @@ public class MetricsRepository {
         this(Optional.empty());
     }
 
-    public MetricsRepository(Optional<ExecutorService> metricsMeasurementExecutor) {
-        this(new MetricConfig(), metricsMeasurementExecutor);
+    public MetricsRepository(Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
+        this(new MetricConfig(), asyncGaugeMeasurementExecutor);
     }
 
     /**
@@ -76,8 +76,8 @@ public class MetricsRepository {
         this(time, Optional.empty());
     }
 
-    public MetricsRepository(Time time, Optional<ExecutorService> metricsMeasurementExecutor) {
-        this(new MetricConfig(), new ArrayList<>(0), time, metricsMeasurementExecutor);
+    public MetricsRepository(Time time, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
+        this(new MetricConfig(), new ArrayList<>(0), time, asyncGaugeMeasurementExecutor);
     }
 
     /**
@@ -89,8 +89,8 @@ public class MetricsRepository {
         this(defaultConfig, Optional.empty());
     }
 
-    public MetricsRepository(MetricConfig defaultConfig, Optional<ExecutorService> metricsMeasurementExecutor) {
-        this(defaultConfig, new ArrayList<>(0), new SystemTime(), metricsMeasurementExecutor);
+    public MetricsRepository(MetricConfig defaultConfig, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
+        this(defaultConfig, new ArrayList<>(0), new SystemTime(), asyncGaugeMeasurementExecutor);
     }
 
     /**
@@ -98,15 +98,15 @@ public class MetricsRepository {
      * @param defaultConfig The default config
      * @param reporters The metrics reporters
      * @param time The time instance to use with the metrics
-     * @param metricsMeasurementExecutor Optional thread pool to improve performance of metrics measurement
+     * @param asyncGaugeMeasurementExecutor Optional thread pool to improve performance of metrics measurement
      */
-    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time, Optional<ExecutorService> metricsMeasurementExecutor) {
+    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
         this.config = Utils.notNull(defaultConfig);
         this.sensors = new ConcurrentHashMap<>();
         this.metrics = new ConcurrentHashMap<>();
         this.reporters = Utils.notNull(reporters);
         this.time = time;
-        this.metricsMeasurementExecutor = metricsMeasurementExecutor;
+        this.asyncGaugeMeasurementExecutor = asyncGaugeMeasurementExecutor;
         for (MetricsReporter reporter : reporters)
             reporter.init(new ArrayList<>());
     }
@@ -264,8 +264,8 @@ public class MetricsRepository {
         return this.metrics.get(name);
     }
 
-    public Optional<ExecutorService> getMetricsMeasurementExecutor() {
-        return this.metricsMeasurementExecutor;
+    public Optional<ExecutorService> getAsyncGaugeMeasurementExecutor() {
+        return this.asyncGaugeMeasurementExecutor;
     }
 
     /**
@@ -277,6 +277,6 @@ public class MetricsRepository {
     public void close() {
         for (MetricsReporter reporter : this.reporters)
             reporter.close();
-        this.metricsMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
+        this.asyncGaugeMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
     }
 }

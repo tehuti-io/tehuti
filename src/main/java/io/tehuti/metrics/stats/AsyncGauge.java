@@ -68,7 +68,7 @@ public class AsyncGauge implements NamedMeasurableStat {
     }
 
     if (lastMeasurementFuture == null) {
-      // First time running measurement
+      // First time running measurement; or previous measurement finished fast enough
       return submitNewMeasurementTask(config, now);
     } else {
       // If the last measurement future exists, meaning the last measurement didn't finish fast enough. In this case:
@@ -122,8 +122,10 @@ public class AsyncGauge implements NamedMeasurableStat {
       lastMeasurementStartTimeInMs = System.currentTimeMillis();
       lastMeasurementFuture =
           CompletableFuture.supplyAsync(() -> this.measurable.measure(config, now), asyncGaugeConfig.getMetricsMeasurementExecutor());
-      // Try to wait for the CompletableFuture for up to 500ms. If it times out, return the cached value;
-      // otherwise, update the cached value and return the latest result.
+      /**
+       * Try to wait for the CompletableFuture for {@link AsyncGaugeConfig#initialMetricsMeasurementTimeoutInMs}.
+       * If it times out, return the cached value; otherwise, update the cached value and return the latest result.
+       */
       cachedMeasurement = lastMeasurementFuture.get(asyncGaugeConfig.getInitialMetricsMeasurementTimeoutInMs(), TimeUnit.MILLISECONDS);
       lastMeasurementFuture = null;
       return cachedMeasurement;
