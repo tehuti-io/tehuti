@@ -94,10 +94,6 @@ public class MetricConfig {
         return this.expirationAge;
     }
 
-    public void setAsyncGaugeConfig(AsyncGaugeConfig asyncGaugeConfig) {
-        this.asyncGaugeConfig = asyncGaugeConfig;
-    }
-
     public AsyncGaugeConfig getAsyncGaugeConfig() {
         return asyncGaugeConfig;
     }
