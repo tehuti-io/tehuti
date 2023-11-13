@@ -12,10 +12,10 @@
  */
 package io.tehuti.metrics;
 
+import io.tehuti.metrics.stats.AsyncGauge;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -23,7 +23,6 @@ import io.tehuti.Metric;
 import io.tehuti.utils.SystemTime;
 import io.tehuti.utils.Time;
 import io.tehuti.utils.Utils;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -56,28 +55,19 @@ public class MetricsRepository {
     private final ConcurrentMap<String, Sensor> sensors;
     private final List<MetricsReporter> reporters;
     private final Time time;
-    private final Optional<ExecutorService> asyncGaugeMeasurementExecutor;
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
     public MetricsRepository() {
-        this(Optional.empty());
-    }
-
-    public MetricsRepository(Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
-        this(new MetricConfig(), asyncGaugeMeasurementExecutor);
+        this(new MetricConfig());
     }
 
     /**
      * Create a metrics repository with no metric reporters and default configuration.
      */
     public MetricsRepository(Time time) {
-        this(time, Optional.empty());
-    }
-
-    public MetricsRepository(Time time, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
-        this(new MetricConfig(), new ArrayList<>(0), time, asyncGaugeMeasurementExecutor);
+        this(new MetricConfig(), new ArrayList<>(0), time);
     }
 
     /**
@@ -86,11 +76,7 @@ public class MetricsRepository {
      * @param defaultConfig The default config to use for all metrics that don't override their config
      */
     public MetricsRepository(MetricConfig defaultConfig) {
-        this(defaultConfig, Optional.empty());
-    }
-
-    public MetricsRepository(MetricConfig defaultConfig, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
-        this(defaultConfig, new ArrayList<>(0), new SystemTime(), asyncGaugeMeasurementExecutor);
+        this(defaultConfig, new ArrayList<>(0), new SystemTime());
     }
 
     /**
@@ -98,15 +84,13 @@ public class MetricsRepository {
      * @param defaultConfig The default config
      * @param reporters The metrics reporters
      * @param time The time instance to use with the metrics
-     * @param asyncGaugeMeasurementExecutor Optional thread pool to improve performance of metrics measurement
      */
-    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time, Optional<ExecutorService> asyncGaugeMeasurementExecutor) {
+    public MetricsRepository(MetricConfig defaultConfig, List<MetricsReporter> reporters, Time time) {
         this.config = Utils.notNull(defaultConfig);
         this.sensors = new ConcurrentHashMap<>();
         this.metrics = new ConcurrentHashMap<>();
         this.reporters = Utils.notNull(reporters);
         this.time = time;
-        this.asyncGaugeMeasurementExecutor = asyncGaugeMeasurementExecutor;
         for (MetricsReporter reporter : reporters)
             reporter.init(new ArrayList<>());
     }
@@ -264,8 +248,8 @@ public class MetricsRepository {
         return this.metrics.get(name);
     }
 
-    public Optional<ExecutorService> getAsyncGaugeMeasurementExecutor() {
-        return this.asyncGaugeMeasurementExecutor;
+    public AsyncGaugeConfig getAsyncGaugeConfig() {
+        return this.config.getAsyncGaugeConfig();
     }
 
     /**
@@ -277,6 +261,9 @@ public class MetricsRepository {
     public void close() {
         for (MetricsReporter reporter : this.reporters)
             reporter.close();
-        this.asyncGaugeMeasurementExecutor.ifPresent(ExecutorService::shutdownNow);
+        AsyncGaugeConfig asyncGaugeConfig = getAsyncGaugeConfig();
+        if (asyncGaugeConfig != null) {
+            asyncGaugeConfig.getMetricsMeasurementExecutor().shutdownNow();
+        }
     }
 }

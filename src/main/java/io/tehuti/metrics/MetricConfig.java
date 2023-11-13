@@ -16,6 +16,8 @@
  */
 package io.tehuti.metrics;
 
+import io.tehuti.metrics.stats.AsyncGauge;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,13 +30,19 @@ public class MetricConfig {
     private long timeWindowMs;
     private TimeUnit unit;
     private long expirationAge;
+    private AsyncGaugeConfig asyncGaugeConfig;
 
     public MetricConfig() {
+        this(AsyncGauge.DEFAULT_ASYNC_GAUGE_CONFIG);
+    }
+
+    public MetricConfig(AsyncGaugeConfig asyncGaugeConfig) {
         super();
         this.quota = null;
         this.samples = 2;
         this.timeWindowMs = TimeUnit.MILLISECONDS.convert(30, TimeUnit.SECONDS);
         this.unit = TimeUnit.SECONDS;
+        this.asyncGaugeConfig = asyncGaugeConfig;
         updateExpirationAge();
     }
 
@@ -84,5 +92,13 @@ public class MetricConfig {
 
     public long expirationAge() {
         return this.expirationAge;
+    }
+
+    public void setAsyncGaugeConfig(AsyncGaugeConfig asyncGaugeConfig) {
+        this.asyncGaugeConfig = asyncGaugeConfig;
+    }
+
+    public AsyncGaugeConfig getAsyncGaugeConfig() {
+        return asyncGaugeConfig;
     }
 }
