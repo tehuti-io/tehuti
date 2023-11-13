@@ -17,7 +17,6 @@
 package io.tehuti.metrics;
 
 import io.tehuti.metrics.stats.AsyncGauge;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
