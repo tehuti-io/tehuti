@@ -46,9 +46,16 @@ public class AsyncGauge implements NamedMeasurableStat {
     return metricName;
   }
 
+  /**
+   * WARNING: Using record() on AsyncGauge will not update any stat value, because the stat value is measured through
+   *          a function which is passed through constructor. However, the record() method is still implemented in order
+   *          not to allow using this stat together with other stats in the same metric Sensor.
+   * @param value  The value to record
+   * @param now The POSIX time in milliseconds this value occurred
+   */
   @Override
   public void record(double value, long now) {
-    throw new UnsupportedOperationException("AsyncGauge does not support record(double, long); the invalid usage happened to metric " + metricName);
+    // Do nothing
   }
 
   /**
@@ -105,12 +112,13 @@ public class AsyncGauge implements NamedMeasurableStat {
         if (System.currentTimeMillis() - lastMeasurementStartTimeInMs < asyncGaugeConfig.getMaxMetricsMeasurementTimeoutInMs()) {
           return cachedMeasurement;
         } else {
+          cachedMeasurement = asyncGaugeConfig.getMaxTimeoutErrorCode();
           lastMeasurementFuture.cancel(true);
           String warningMessagePrefix = String.format(
               "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
               metricName);
           if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
-            LOGGER.warn(String.format("%s Return the cached value: %f", warningMessagePrefix, cachedMeasurement));
+            LOGGER.warn(String.format("%s Return the error code: %f", warningMessagePrefix, cachedMeasurement));
           }
           return submitNewMeasurementTask(config, now, asyncGaugeConfig);
         }
