@@ -1,5 +1,6 @@
 package io.tehuti.metrics;
 
+import io.tehuti.utils.Utils;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -18,6 +19,13 @@ public class AsyncGaugeConfig {
   public AsyncGaugeConfig(ExecutorService metricsMeasurementExecutor,
                           long maxMetricsMeasurementTimeoutInMs,
                           long initialMetricsMeasurementTimeoutInMs) {
+    Utils.notNull(metricsMeasurementExecutor);
+    if (maxMetricsMeasurementTimeoutInMs <= 0) {
+      throw new IllegalArgumentException("maxMetricsMeasurementTimeoutInMs must be positive");
+    }
+    if (initialMetricsMeasurementTimeoutInMs <= 0) {
+      throw new IllegalArgumentException("initialMetricsMeasurementTimeoutInMs must be positive");
+    }
     this.metricsMeasurementExecutor = metricsMeasurementExecutor;
     this.maxMetricsMeasurementTimeoutInMs = maxMetricsMeasurementTimeoutInMs;
     this.initialMetricsMeasurementTimeoutInMs = initialMetricsMeasurementTimeoutInMs;

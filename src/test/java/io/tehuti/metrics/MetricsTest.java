@@ -20,6 +20,7 @@ import static org.junit.Assert.fail;
 import io.tehuti.utils.Time;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import io.tehuti.Metric;
@@ -34,7 +35,7 @@ public class MetricsTest {
 
     MockTime time = new MockTime();
     MetricConfig config = new MetricConfig();
-    MetricsRepository metricsRepository = new MetricsRepository(config, Arrays.asList((MetricsReporter) new JmxReporter()), time, Optional.empty());
+    MetricsRepository metricsRepository = new MetricsRepository(config, Arrays.asList((MetricsReporter) new JmxReporter()), time);
 
     @Test
     public void testSimpleStats() throws Exception {
