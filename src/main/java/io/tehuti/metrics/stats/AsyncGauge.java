@@ -105,12 +105,13 @@ public class AsyncGauge implements NamedMeasurableStat {
         if (System.currentTimeMillis() - lastMeasurementStartTimeInMs < asyncGaugeConfig.getMaxMetricsMeasurementTimeoutInMs()) {
           return cachedMeasurement;
         } else {
+          cachedMeasurement = asyncGaugeConfig.getMaxTimeoutErrorCode();
           lastMeasurementFuture.cancel(true);
           String warningMessagePrefix = String.format(
               "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
               metricName);
           if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
-            LOGGER.warn(String.format("%s Return the cached value: %f", warningMessagePrefix, cachedMeasurement));
+            LOGGER.warn(String.format("%s Return the error code: %f", warningMessagePrefix, cachedMeasurement));
           }
           return submitNewMeasurementTask(config, now, asyncGaugeConfig);
         }
