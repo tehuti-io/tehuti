@@ -7,7 +7,7 @@ import java.util.concurrent.ExecutorService;
  * Configuration for AsyncGauge
  */
 public class AsyncGaugeConfig {
-  private static final long DEFAULT_MAX_TIMEOUT_ERROR_CODE = -1L;
+  public static final long DEFAULT_MAX_TIMEOUT_ERROR_CODE = -1L;
 
   // Thread pool for metrics measurement; ideally these threads should be daemon threads
   private final ExecutorService metricsMeasurementExecutor;
