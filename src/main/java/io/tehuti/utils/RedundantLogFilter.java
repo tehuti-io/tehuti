@@ -12,7 +12,7 @@ public class RedundantLogFilter {
   private static RedundantLogFilter singleton;
 
   private final int bitSetSize;
-  private final ScheduledExecutorService cleanerExecutor = Executors.newScheduledThreadPool(1);
+  private final ScheduledExecutorService cleanerExecutor = Executors.newScheduledThreadPool(1, new DaemonThreadFactory("Redundant_Log_Filter"));
 
   private BitSet activeBitset;
   private BitSet oldBitSet;
