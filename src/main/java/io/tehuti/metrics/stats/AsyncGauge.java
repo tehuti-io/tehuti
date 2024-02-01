@@ -4,6 +4,7 @@ import io.tehuti.metrics.AsyncGaugeConfig;
 import io.tehuti.metrics.Measurable;
 import io.tehuti.metrics.MetricConfig;
 import io.tehuti.metrics.NamedMeasurableStat;
+import io.tehuti.utils.DaemonThreadFactory;
 import io.tehuti.utils.RedundantLogFilter;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -30,11 +31,10 @@ public class AsyncGauge implements NamedMeasurableStat {
   private final Measurable measurable;
 
   public static final AsyncGaugeConfig DEFAULT_ASYNC_GAUGE_CONFIG =
-      new AsyncGaugeConfig(Executors.newFixedThreadPool(10, r -> {
-        Thread thread = new Thread(r);
-        thread.setDaemon(true); // Set the thread as daemon
-        return thread;
-      }), TimeUnit.MINUTES.toMillis(1), 500);
+      new AsyncGaugeConfig(Executors.newFixedThreadPool(10,
+          new DaemonThreadFactory("Default_Async_Gauge_Executor")),
+          TimeUnit.MINUTES.toMillis(1),
+          500);
 
   public AsyncGauge(Measurable measurable, String metricName) {
     this.measurable = measurable;
