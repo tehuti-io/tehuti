@@ -280,7 +280,7 @@ public class AsyncGauge implements NamedMeasurableStat {
              */
             if (asyncGauge.lastMeasurementLatencyInMs > slowMetricThresholdMs) {
               if (!isSlowMetric) {
-                LOGGER.warn(String.format("The measurement for metric %s took %d ms; the metric value is %f, will move this metric to slow metric tracking",
+                LOGGER.warn(String.format("The measurement for metric %s took %d ms; the metric value is %f, moved this metric to slow metric tracking",
                     asyncGauge.metricName, asyncGauge.lastMeasurementLatencyInMs, asyncGauge.cachedMeasurement));
                 isSlowMetric = true;
                 slowAsyncGaugeAccessMap.put(asyncGauge, time.milliseconds());
@@ -289,7 +289,7 @@ public class AsyncGauge implements NamedMeasurableStat {
               slowAsyncGaugeAccessMap.remove(asyncGauge);
               isSlowMetric = false;
               LOGGER.info("The measurement for metric: " + asyncGauge.metricName + " took " +
-                  asyncGauge.lastMeasurementLatencyInMs + " ms, will move this metric out of slow metric tracking");
+                  asyncGauge.lastMeasurementLatencyInMs + " ms, moved this metric out of slow metric tracking");
             }
             asyncGauge.cachedMeasurement = asyncGauge.lastMeasurementFuture.get();
           } catch (ExecutionException e) {
