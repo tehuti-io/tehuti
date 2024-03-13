@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import io.tehuti.metrics.AsyncGaugeConfig;
 import io.tehuti.metrics.MetricConfig;
 import io.tehuti.utils.MockTime;
-import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Assert;
 import org.junit.Test;
@@ -127,5 +127,28 @@ public class AsyncGaugeTest {
     Thread.sleep(1000);
     Assert.assertTrue(asyncGaugeExecutor.getSlowAsyncGaugeAccessMap().isEmpty());
 
+    // Cancel long-running metric
+    AtomicBoolean longRunningMetricInterrupted = new AtomicBoolean(false);
+    AsyncGauge longRunningMetric = new AsyncGauge(
+        (ignored1, ignored2) -> {
+          try {
+            Thread.sleep(100000); // 100s
+          } catch (InterruptedException e) {
+            longRunningMetricInterrupted.set(true);
+            return 0;
+          }
+          return 1;
+        } ,
+        "long_running_metric"
+    );
+    mockTime.sleep(1000);
+    // Return cached value
+    Assert.assertEquals(0, longRunningMetric.measure(config, System.currentTimeMillis()), 0.0001d);
+    // The long-running metric should time out in next invocation
+    mockTime.sleep(1000);
+    // Return error code because of timeout
+    Assert.assertEquals(-1, longRunningMetric.measure(config, System.currentTimeMillis()), 0.0001d);
+    Assert.assertTrue("Long running metric should be interrupted after hitting timeout", longRunningMetricInterrupted.get());
+    Assert.assertEquals(1, asyncGaugeExecutor.getSlowAsyncGaugeAccessMap().size());
   }
 }

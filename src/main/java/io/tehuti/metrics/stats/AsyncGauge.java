@@ -13,11 +13,11 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,7 +37,7 @@ public class AsyncGauge implements NamedMeasurableStat {
   private double cachedMeasurement = 0.0;
   private long lastMeasurementStartTimeInMs = -1;
   private long lastMeasurementLatencyInMs = -1;
-  private CompletableFuture<Double> lastMeasurementFuture = null;
+  private Future<Double> lastMeasurementFuture = null;
 
   private final Measurable measurable;
 
@@ -269,67 +269,64 @@ public class AsyncGauge implements NamedMeasurableStat {
       if (asyncGauge.lastMeasurementFuture == null) {
         // First time running measurement; or previous measurement finished fast enough
         return submitNewMeasurementTask(asyncGauge, config, now, isSlowMetric);
-      } else {
-        // If the last measurement future exists, meaning the last measurement didn't finish fast enough. In this case:
-        // 1. If the last measurement future is done, update the cached value, log which metric measurement is slow.
-        // 2. If the last measurement future is still running, cancel it to prevent OutOfMemory issue, and log.
-        if (asyncGauge.lastMeasurementFuture.isDone()) {
-          try {
-            /**
-             * Get the measurement duration of last execution to see whether we should move the metric to {@link #slowAsyncGaugeSet} or not.
-             */
-            if (asyncGauge.lastMeasurementLatencyInMs > slowMetricThresholdMs) {
-              if (!isSlowMetric) {
-                LOGGER.warn(String.format("The measurement for metric %s took %d ms; the metric value is %f, moved this metric to slow metric tracking",
-                    asyncGauge.metricName, asyncGauge.lastMeasurementLatencyInMs, asyncGauge.cachedMeasurement));
-                isSlowMetric = true;
-                slowAsyncGaugeAccessMap.put(asyncGauge, time.milliseconds());
-              }
-            } else if (isSlowMetric) {
-              slowAsyncGaugeAccessMap.remove(asyncGauge);
-              isSlowMetric = false;
-              LOGGER.info("The measurement for metric: " + asyncGauge.metricName + " took " +
-                  asyncGauge.lastMeasurementLatencyInMs + " ms, moved this metric out of slow metric tracking");
-            }
-            asyncGauge.cachedMeasurement = asyncGauge.lastMeasurementFuture.get();
-          } catch (ExecutionException e) {
-            String errorMessage = String.format("Failed to get a done measurement future for metric %s. ", asyncGauge.metricName);
-            if (!REDUNDANT_LOG_FILTER.isRedundantLog(errorMessage)) {
-              LOGGER.error(errorMessage, e);
-            }
-            // Update the cached value to a negative value to indicate the measurement failure
-            asyncGauge.cachedMeasurement = -1.0;
-          } catch (InterruptedException e) {
-            throw new RuntimeException("Metric measurement is interrupted for metric " + asyncGauge.metricName, e);
-          }
-          // Always try to get the freshest measurement value
-          // Reason: let's say the initial wait time is 500ms, and the previous measurement took 600ms. In this case, if we
-          //         return the previous measurement value, it would be 59 seconds stale, assuming the measurement interval is 1 minute.
-          return submitNewMeasurementTask(asyncGauge, config, now, isSlowMetric);
-        } else {
-          // If the last measurement future is still running but hasn't exceeded the max timeout, keep it running and return the cached value.
-          // Otherwise, cancel the last measurement future to prevent OutOfMemory issue, and submit a new measurement task.
-          if (asyncGauge.lastMeasurementStartTimeInMs < 0 // Measurable hasn't been executed yet
-              || time.milliseconds() - asyncGauge.lastMeasurementStartTimeInMs < maxMetricsMeasurementTimeoutInMs) {
-            return asyncGauge.cachedMeasurement;
-          } else {
-            asyncGauge.cachedMeasurement = maxTimeoutErrorCode;
-            asyncGauge.lastMeasurementFuture.cancel(true);
-            String warningMessagePrefix = String.format(
-                "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
-                asyncGauge.metricName);
-            if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
-              LOGGER.warn(String.format("%s Return the error code: %f, and put it in slow metric set",
-                  warningMessagePrefix, asyncGauge.cachedMeasurement));
-            }
-            if (!isSlowMetric) {
-              slowAsyncGaugeAccessMap.put(asyncGauge, time.milliseconds());
-              isSlowMetric = true;
-            }
-            return submitNewMeasurementTask(asyncGauge, config, now, isSlowMetric);
-          }
-        }
       }
+      // If the last measurement future exists, meaning the last measurement didn't finish fast enough. In this case:
+      // 1. If the last measurement future is done, update the cached value, log which metric measurement is slow.
+      // 2. If the last measurement future is still running, cancel it to prevent OutOfMemory issue, and log.
+      if (asyncGauge.lastMeasurementFuture.isDone()) {
+        try {
+          /**
+           * Get the measurement duration of last execution to see whether we should move the metric to {@link #slowAsyncGaugeSet} or not.
+           */
+          if (asyncGauge.lastMeasurementLatencyInMs > slowMetricThresholdMs) {
+            if (!isSlowMetric) {
+              LOGGER.warn(String.format("The measurement for metric %s took %d ms; the metric value is %f, moved this metric to slow metric tracking",
+                  asyncGauge.metricName, asyncGauge.lastMeasurementLatencyInMs, asyncGauge.cachedMeasurement));
+              isSlowMetric = true;
+              slowAsyncGaugeAccessMap.put(asyncGauge, time.milliseconds());
+            }
+          } else if (isSlowMetric) {
+            slowAsyncGaugeAccessMap.remove(asyncGauge);
+            isSlowMetric = false;
+            LOGGER.info("The measurement for metric: " + asyncGauge.metricName + " took " +
+                asyncGauge.lastMeasurementLatencyInMs + " ms, moved this metric out of slow metric tracking");
+          }
+          asyncGauge.cachedMeasurement = asyncGauge.lastMeasurementFuture.get();
+        } catch (ExecutionException e) {
+          String errorMessage = String.format("Failed to get a done measurement future for metric %s. ", asyncGauge.metricName);
+          if (!REDUNDANT_LOG_FILTER.isRedundantLog(errorMessage)) {
+            LOGGER.error(errorMessage, e);
+          }
+          // Update the cached value to a negative value to indicate the measurement failure
+          asyncGauge.cachedMeasurement = -1.0;
+        } catch (InterruptedException e) {
+          throw new RuntimeException("Metric measurement is interrupted for metric " + asyncGauge.metricName, e);
+        }
+        // Always try to get the freshest measurement value
+        // Reason: let's say the initial wait time is 500ms, and the previous measurement took 600ms. In this case, if we
+        //         return the previous measurement value, it would be 59 seconds stale, assuming the measurement interval is 1 minute.
+        return submitNewMeasurementTask(asyncGauge, config, now, isSlowMetric);
+      }
+      // If the last measurement future is still running but hasn't exceeded the max timeout, keep it running and return the cached value.
+      // Otherwise, cancel the last measurement future to prevent OutOfMemory issue, and submit a new measurement task.
+      if (asyncGauge.lastMeasurementStartTimeInMs < 0 // Measurable hasn't been executed yet
+          || time.milliseconds() - asyncGauge.lastMeasurementStartTimeInMs < maxMetricsMeasurementTimeoutInMs) {
+        return asyncGauge.cachedMeasurement;
+      }
+      asyncGauge.cachedMeasurement = maxTimeoutErrorCode;
+      asyncGauge.lastMeasurementFuture.cancel(true);
+      String warningMessagePrefix = String.format(
+          "The last measurement for metric %s is still running. " + "Cancel it to prevent OutOfMemory issue.",
+          asyncGauge.metricName);
+      if (!REDUNDANT_LOG_FILTER.isRedundantLog(warningMessagePrefix)) {
+        LOGGER.warn(String.format("%s Return the error code: %f, and put it in slow metric set",
+            warningMessagePrefix, asyncGauge.cachedMeasurement));
+      }
+      if (!isSlowMetric) {
+        slowAsyncGaugeAccessMap.put(asyncGauge, time.milliseconds());
+        isSlowMetric = true;
+      }
+      return submitNewMeasurementTask(asyncGauge, config, now, isSlowMetric);
     }
 
     private double submitNewMeasurementTask(AsyncGauge asyncGauge, MetricConfig config, long now, boolean isSlowMetric) {
@@ -338,7 +335,7 @@ public class AsyncGauge implements NamedMeasurableStat {
         asyncGauge.lastMeasurementStartTimeInMs = -1;
         asyncGauge.lastMeasurementLatencyInMs = -1;
         asyncGauge.lastMeasurementFuture = null;
-        asyncGauge.lastMeasurementFuture = CompletableFuture.supplyAsync(
+        asyncGauge.lastMeasurementFuture = (isSlowMetric ? slowMetricsMeasurementExecutor : metricsMeasurementExecutor).submit(
             () -> {
               try {
                 asyncGauge.lastMeasurementStartTimeInMs = time.milliseconds();
@@ -346,8 +343,7 @@ public class AsyncGauge implements NamedMeasurableStat {
               } finally {
                 asyncGauge.lastMeasurementLatencyInMs = time.milliseconds() - asyncGauge.lastMeasurementStartTimeInMs;
               }
-            },
-            isSlowMetric ? slowMetricsMeasurementExecutor : metricsMeasurementExecutor
+            }
         );
 
         if (isSlowMetric) {
