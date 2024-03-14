@@ -13,6 +13,7 @@
 package io.tehuti.metrics;
 
 import io.tehuti.metrics.stats.AsyncGauge;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -248,8 +249,8 @@ public class MetricsRepository {
         return this.metrics.get(name);
     }
 
-    public AsyncGaugeConfig getAsyncGaugeConfig() {
-        return this.config.getAsyncGaugeConfig();
+    public AsyncGauge.AsyncGaugeExecutor getAsyncGaugeExecutor() {
+        return this.config.getAsyncGaugeExecutor();
     }
 
     /**
@@ -261,9 +262,11 @@ public class MetricsRepository {
     public void close() {
         for (MetricsReporter reporter : this.reporters)
             reporter.close();
-        AsyncGaugeConfig asyncGaugeConfig = getAsyncGaugeConfig();
-        if (asyncGaugeConfig != null) {
-            asyncGaugeConfig.getMetricsMeasurementExecutor().shutdownNow();
+        AsyncGauge.AsyncGaugeExecutor asyncGaugeExecutor = getAsyncGaugeExecutor();
+        try {
+            asyncGaugeExecutor.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

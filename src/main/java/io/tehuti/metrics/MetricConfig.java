@@ -29,19 +29,19 @@ public class MetricConfig {
     private long timeWindowMs;
     private TimeUnit unit;
     private long expirationAge;
-    private AsyncGaugeConfig asyncGaugeConfig;
+    private AsyncGauge.AsyncGaugeExecutor asyncGaugeExecutor;
 
     public MetricConfig() {
-        this(AsyncGauge.DEFAULT_ASYNC_GAUGE_CONFIG);
+        this(AsyncGauge.DEFAULT_ASYNC_GAUGE_EXECUTOR);
     }
 
-    public MetricConfig(AsyncGaugeConfig asyncGaugeConfig) {
+    public MetricConfig(AsyncGauge.AsyncGaugeExecutor asyncGaugeExecutor) {
         super();
         this.quota = null;
         this.samples = 2;
         this.timeWindowMs = TimeUnit.MILLISECONDS.convert(30, TimeUnit.SECONDS);
         this.unit = TimeUnit.SECONDS;
-        this.asyncGaugeConfig = asyncGaugeConfig;
+        this.asyncGaugeExecutor = asyncGaugeExecutor;
         updateExpirationAge();
     }
 
@@ -93,7 +93,7 @@ public class MetricConfig {
         return this.expirationAge;
     }
 
-    public AsyncGaugeConfig getAsyncGaugeConfig() {
-        return asyncGaugeConfig;
+    public AsyncGauge.AsyncGaugeExecutor getAsyncGaugeExecutor() {
+        return this.asyncGaugeExecutor;
     }
 }
