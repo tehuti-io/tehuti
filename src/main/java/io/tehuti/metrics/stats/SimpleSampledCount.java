@@ -15,8 +15,8 @@ import io.tehuti.metrics.MetricConfig;
 
 /**
  * Simple version of {@link SampledCount}, this aggregates counts as a single sample and gets reset to 0 every time it is measured.
- * Useful to count the number of occurrences of an event and not have to keep track of the previous measurement
- * to calculate the delta.
+ * The sample window is just the time between measurements unlike SampledCount which can be defined by number of events or elapsed time.
+ * Also, useful to count the number of occurrences of an event and not have to keep track of the previous measurement to calculate the delta.
  */
 public class SimpleSampledCount extends Count {
     public SimpleSampledCount() {

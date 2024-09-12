@@ -11,36 +11,30 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.tehuti.metrics.stats;
-
-import io.tehuti.metrics.MeasurableStat;
 import io.tehuti.metrics.MetricConfig;
+
+
 /**
- * An un-windowed cumulative total maintained over all time.
+ * Simple version of {@link SampledTotal}, this aggregates total as a single sample and gets reset to 0 every time it is measured.
+ * The sample window is just the time between measurements unlike SampledTotal which can be defined by number of events or elapsed time.
+ * Also, useful to get the total of an event and not have to keep track of the previous measurement to calculate the delta.
  */
-public class Total implements MeasurableStat {
-
-    private double total;
-
-    public Total() {
-        this.total = 0.0;
+public class SimpleSampledTotal extends Total {
+    public SimpleSampledTotal() {
+        super();
     }
 
-    public Total(double value) {
-        this.total = value;
+    public SimpleSampledTotal(double value) {
+        super(value);
     }
 
-    @Override
-    public void record(double value, long now) {
-        this.total += value;
-    }
-
+    /**
+     * Return the total so far and reset it to 0.
+     */
     @Override
     public double measure(MetricConfig config, long now) {
-        return this.total;
+        double total = super.measure(config, now);
+        super.reset();
+        return total;
     }
-
-    public void reset() {
-        this.total = 0.0;
-    }
-
 }
