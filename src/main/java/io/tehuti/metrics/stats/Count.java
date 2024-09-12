@@ -40,7 +40,7 @@ public class Count implements MeasurableStat {
         return this.count;
     }
 
-    public void reset() {
+    void reset() {
         this.count = 0;
     }
 }

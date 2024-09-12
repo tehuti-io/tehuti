@@ -39,7 +39,7 @@ public class Total implements MeasurableStat {
         return this.total;
     }
 
-    public void reset() {
+    void reset() {
         this.total = 0.0;
     }
 
