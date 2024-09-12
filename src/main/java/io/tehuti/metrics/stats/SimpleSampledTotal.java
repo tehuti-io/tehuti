@@ -17,7 +17,9 @@ import io.tehuti.metrics.MetricConfig;
 /**
  * Simple version of {@link SampledTotal}, this aggregates total as a single sample and gets reset to 0 every time it is measured.
  * The sample window is just the time between measurements unlike SampledTotal which can be defined by number of events or elapsed time.
- * Also, useful to get the total of an event and not have to keep track of the previous measurement to calculate the delta.
+ * Measure every second to get total per second.
+ * Measure every minute to get total per minute.
+ * Measure adhoc to get the delta total since the last measurement.
  */
 public class SimpleSampledTotal extends Total {
     public SimpleSampledTotal() {
