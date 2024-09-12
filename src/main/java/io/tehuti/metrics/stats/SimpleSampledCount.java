@@ -11,36 +11,29 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.tehuti.metrics.stats;
-
-import io.tehuti.metrics.MeasurableStat;
 import io.tehuti.metrics.MetricConfig;
 
 /**
- * An un-windowed cumulative count maintained over all time.
+ * Simple version of {@link SampledCount}, this aggregates counts as a single sample and gets reset to 0 every time it is measured.
+ * Useful to count the number of occurrences of an event and not have to keep track of the previous measurement
+ * to calculate the delta.
  */
-public class Count implements MeasurableStat {
-
-    private int count;
-
-    public Count() {
-        this.count = 0;
+public class SimpleSampledCount extends Count {
+    public SimpleSampledCount() {
+        super();
     }
 
-    public Count(int value) {
-        this.count = value;
+    public SimpleSampledCount(int value) {
+        super(value);
     }
 
-    @Override
-    public void record(double value, long now) {
-        this.count++;
-    }
-
+    /**
+     * Return the count so far and reset it to 0.
+     */
     @Override
     public double measure(MetricConfig config, long now) {
-        return this.count;
-    }
-
-    public void reset() {
-        this.count = 0;
+        double count = super.measure(config, now);
+        super.reset();
+        return count;
     }
 }
