@@ -39,4 +39,8 @@ public class Total implements MeasurableStat {
         return this.total;
     }
 
+    void reset() {
+        this.total = 0.0;
+    }
+
 }
