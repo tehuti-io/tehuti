@@ -11,6 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 package io.tehuti.metrics.stats;
+import io.tehuti.metrics.Initializable;
 import io.tehuti.metrics.MetricConfig;
 
 
@@ -21,7 +22,7 @@ import io.tehuti.metrics.MetricConfig;
  * Measure every minute to get total per minute.
  * Measure adhoc to get the delta total since the last measurement.
  */
-public class TotalSinceLastMeasurement extends Total {
+public class TotalSinceLastMeasurement extends Total implements Initializable {
     public TotalSinceLastMeasurement() {
         super();
     }
@@ -35,12 +36,16 @@ public class TotalSinceLastMeasurement extends Total {
      */
     @Override
     public double measure(MetricConfig config, long now) {
+        double total = super.measure(config, now);
+        super.reset();
+        return total;
+    }
+
+    @Override
+    public void init(MetricConfig config, long now) {
         if (config.quota() != null) {
             // quotas are not supported with resets in every measure(). Needs to be revisited to support quotas.
             throw new UnsupportedOperationException(TotalSinceLastMeasurement.class + " does not support quotas");
         }
-        double total = super.measure(config, now);
-        super.reset();
-        return total;
     }
 }

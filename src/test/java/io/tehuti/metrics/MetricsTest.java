@@ -76,6 +76,32 @@ public class MetricsTest {
     }
 
     @Test
+    public void testQuotaSupportInSinceLastMeasuredStats() {
+        ConstantMeasurable measurable = new ConstantMeasurable();
+        metricsRepository.addMetric("direct.measurable", measurable);
+        Sensor s = metricsRepository.sensor("test.sensor");
+        s.add("test1.CountSinceLastMeasurement", new CountSinceLastMeasurement());
+        try {
+            s.add("test2.CountSinceLastMeasurement", new CountSinceLastMeasurement(),
+                new MetricConfig().quota(Quota.lessThan(5.0)));
+            fail();
+        } catch (UnsupportedOperationException e) {
+            // expected
+            assertEquals(e.getMessage(), "class io.tehuti.metrics.stats.CountSinceLastMeasurement does not support quotas");
+        }
+
+        s.add("test1.TotalSinceLastMeasurement", new TotalSinceLastMeasurement());
+        try {
+            s.add("test2.TotalSinceLastMeasurement", new TotalSinceLastMeasurement(),
+                new MetricConfig().quota(Quota.lessThan(5.0)));
+            fail();
+        } catch (UnsupportedOperationException e) {
+            // expected
+            assertEquals(e.getMessage(), "class io.tehuti.metrics.stats.TotalSinceLastMeasurement does not support quotas");
+        }
+    }
+
+    @Test
     public void testHierarchicalSensors() {
         Sensor parent1 = metricsRepository.sensor("test.parent1");
         Metric parent1Count = parent1.add("test.parent1.count", new SampledCount());
