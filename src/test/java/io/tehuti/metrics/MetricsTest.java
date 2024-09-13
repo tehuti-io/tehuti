@@ -19,8 +19,6 @@ import static org.junit.Assert.fail;
 
 import io.tehuti.utils.Time;
 import java.util.Arrays;
-import java.util.Optional;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import io.tehuti.Metric;
@@ -48,14 +46,14 @@ public class MetricsTest {
         s.add("test.rate", new Rate(TimeUnit.SECONDS));
         s.add("test.occurrence-rate", new OccurrenceRate());
         s.add("test.count", new Count());
-        s.add("test.SimpleSampledCount", new SimpleSampledCount());
+        s.add("test.CountSinceLastMeasurement", new CountSinceLastMeasurement());
         s.add(new Percentiles(100, -100, 100, BucketSizing.CONSTANT,
                 new Percentile("test.median", 50.0),
                 new Percentile("test.perc99_9", 99.9)));
 
         Sensor s2 = metricsRepository.sensor("test.sensor2");
         s2.add("s2.total", new Total());
-        s2.add("s2.SimpleSampledTotal", new SimpleSampledTotal());
+        s2.add("s2.TotalSinceLastMeasurement", new TotalSinceLastMeasurement());
         s2.record(5.0);
 
         for (int i = 0; i < 10; i++)
@@ -65,16 +63,16 @@ public class MetricsTest {
         time.sleep(config.timeWindowMs());
 
         assertEquals("s2 total reflects the constant value", 5.0, metricsRepository.getMetric("s2.total").value(), EPS);
-        assertEquals("s2 SimpleSampledTotal reflects the constant value", 5.0, metricsRepository.getMetric("s2.SimpleSampledTotal").value(), EPS);
-        assertEquals("s2 SimpleSampledTotal = 0 as its reset after last fetch", 0.0, metricsRepository.getMetric("s2.SimpleSampledTotal").value(), EPS);
+        assertEquals("s2 TotalSinceLastMeasurement reflects the constant value", 5.0, metricsRepository.getMetric("s2.TotalSinceLastMeasurement").value(), EPS);
+        assertEquals("s2 TotalSinceLastMeasurement = 0 as its reset after last fetch", 0.0, metricsRepository.getMetric("s2.TotalSinceLastMeasurement").value(), EPS);
         assertEquals("Avg(0...9) = 4.5", 4.5, metricsRepository.getMetric("test.avg").value(), EPS);
         assertEquals("Max(0...9) = 9", 9.0, metricsRepository.getMetric("test.max").value(), EPS);
         assertEquals("Min(0...9) = 0", 0.0, metricsRepository.getMetric("test.min").value(), EPS);
         assertEquals("Rate(0...9) = 1.5", 1.5, metricsRepository.getMetric("test.rate").value(), EPS);
         assertEquals("OccurrenceRate(0...9) = 0.33333333333", 0.33333333333, metricsRepository.getMetric("test.occurrence-rate").value(), EPS);
         assertEquals("Count(0...9) = 10", 10.0, metricsRepository.getMetric("test.count").value(), EPS);
-        assertEquals("SimpleSampledCount(0...9) = 10", 10.0, metricsRepository.getMetric("test.SimpleSampledCount").value(), EPS);
-        assertEquals("SimpleSampledCount = 0 as its reset after last fetch", 0.0, metricsRepository.getMetric("test.SimpleSampledCount").value(), EPS);
+        assertEquals("CountSinceLastMeasurement(0...9) = 10", 10.0, metricsRepository.getMetric("test.CountSinceLastMeasurement").value(), EPS);
+        assertEquals("CountSinceLastMeasurement = 0 as its reset after last fetch", 0.0, metricsRepository.getMetric("test.CountSinceLastMeasurement").value(), EPS);
     }
 
     @Test

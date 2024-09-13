@@ -13,30 +13,33 @@
 package io.tehuti.metrics.stats;
 import io.tehuti.metrics.MetricConfig;
 
-
 /**
- * Simple version of {@link SampledTotal}, this aggregates total as a single sample and gets reset to 0 every time it is measured.
- * The sample window is just the time between measurements unlike SampledTotal which can be defined by number of events or elapsed time.
- * Measure every second to get total per second.
- * Measure every minute to get total per minute.
- * Measure adhoc to get the delta total since the last measurement.
+ * Simple version of {@link SampledCount}, this aggregates counts as a single sample and gets reset to 0 every time it is measured.
+ * The sample window is just the time between measurements unlike SampledCount which can be defined by number of events or elapsed time.
+ * Measure every second to get count per second.
+ * Measure every minute to get count per minute.
+ * Measure adhoc to get the delta count since the last measurement.
  */
-public class SimpleSampledTotal extends Total {
-    public SimpleSampledTotal() {
+public class CountSinceLastMeasurement extends Count {
+    public CountSinceLastMeasurement() {
         super();
     }
 
-    public SimpleSampledTotal(double value) {
+    public CountSinceLastMeasurement(int value) {
         super(value);
     }
 
     /**
-     * Return the total so far and reset it to 0.
+     * Return the count so far and reset it to 0.
      */
     @Override
     public double measure(MetricConfig config, long now) {
-        double total = super.measure(config, now);
+        if (config.quota() != null) {
+            // quotas are not supported with resets in every measure(). Needs to be revisited to support quotas.
+            throw new UnsupportedOperationException(CountSinceLastMeasurement.class + " does not support quotas");
+        }
+        double count = super.measure(config, now);
         super.reset();
-        return total;
+        return count;
     }
 }
