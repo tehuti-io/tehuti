@@ -33,8 +33,12 @@ import java.util.concurrent.locks.ReentrantLock;
  * of metrics about request sizes such as the average or max.
  */
 public class Sensor {
-
+    /**
+     * lock on {@link Sensor#registry} and {@link Sensor#lock} always needs to be taken in
+     * same order, MetricsRepository first and then the Sensor lock.
+     */
     private final MetricsRepository registry;
+    private final ReentrantLock lock;
     private final String name;
     private final Sensor[] parents;
     private final List<Stat> stats;
@@ -43,7 +47,6 @@ public class Sensor {
     private final List<TehutiMetric> metricsWithPostCheckQuota;
     private final MetricConfig config;
     private final Time time;
-    private final ReentrantLock lock;
 
     Sensor(MetricsRepository registry, String name, Sensor[] parents, MetricConfig config, Time time) {
         super();
@@ -184,23 +187,26 @@ public class Sensor {
      *         and added to this sensor.
      */
     public Map<String, Metric> add(CompoundStat stat, MetricConfig config) {
-        this.lock.lock();
-        try {
-            this.stats.add(Utils.notNull(stat));
-            MetricConfig statConfig = (config == null ? this.config : config);
-            Map<String, Metric> addedMetrics = new HashMap<>();
-            for (NamedMeasurable m : stat.stats()) {
-                TehutiMetric metric = new TehutiMetric(this.lock, m.name(), m.description(), m.stat(), statConfig, time);
-                this.registry.registerMetric(metric);
-                addMetric(metric);
-                addedMetrics.put(metric.name(), metric);
+        synchronized (this.registry) {
+            this.lock.lock();
+            try {
+                this.stats.add(Utils.notNull(stat));
+                MetricConfig statConfig = (config == null ? this.config : config);
+                Map<String, Metric> addedMetrics = new HashMap<>();
+                for (NamedMeasurable m : stat.stats()) {
+                    TehutiMetric metric =
+                        new TehutiMetric(this.lock, m.name(), m.description(), m.stat(), statConfig, time);
+                    this.registry.registerMetric(metric);
+                    addMetric(metric);
+                    addedMetrics.put(metric.name(), metric);
+                }
+                if (stat instanceof Initializable) {
+                    ((Initializable) stat).init(statConfig, time.milliseconds());
+                }
+                return addedMetrics;
+            } finally {
+                this.lock.unlock();
             }
-            if (stat instanceof Initializable) {
-                ((Initializable) stat).init(statConfig, time.milliseconds());
-            }
-            return addedMetrics;
-        } finally {
-            this.lock.unlock();
         }
     }
 
@@ -237,21 +243,20 @@ public class Sensor {
      * @return a {@link Metric} instance representing the registered metric
      */
     public Metric add(String name, String description, MeasurableStat stat, MetricConfig config) {
-        this.lock.lock();
-        try {
-            MetricConfig statConfig = (config == null ? this.config : config);
-            TehutiMetric metric = new TehutiMetric(this.lock,
-                Utils.notNull(name),
-                Utils.notNull(description),
-                Utils.notNull(stat),
-                statConfig,
-                time);
-            this.registry.registerMetric(metric);
-            addMetric(metric);
-            this.stats.add(stat);
-            return metric;
-        } finally {
-            this.lock.unlock();
+        synchronized (this.registry) {
+            this.lock.lock();
+            try {
+                MetricConfig statConfig = (config == null ? this.config : config);
+                TehutiMetric metric =
+                    new TehutiMetric(this.lock, Utils.notNull(name), Utils.notNull(description), Utils.notNull(stat),
+                        statConfig, time);
+                this.registry.registerMetric(metric);
+                addMetric(metric);
+                this.stats.add(stat);
+                return metric;
+            } finally {
+                this.lock.unlock();
+            }
         }
     }
 
@@ -259,17 +264,19 @@ public class Sensor {
      * Unregister all metrics with this sensor
      */
     void removeAll() {
-        this.lock.lock();
-        try {
-            for (TehutiMetric metric : this.metrics) {
-                this.registry.unregisterMetric(metric);
+        synchronized (this.registry) {
+            this.lock.lock();
+            try {
+                for (TehutiMetric metric : this.metrics) {
+                    this.registry.unregisterMetric(metric);
+                }
+                this.metrics.clear();
+                this.metricsWithPreCheckQuota.clear();
+                this.metricsWithPostCheckQuota.clear();
+                this.stats.clear();
+            } finally {
+                this.lock.unlock();
             }
-            this.metrics.clear();
-            this.metricsWithPreCheckQuota.clear();
-            this.metricsWithPostCheckQuota.clear();
-            this.stats.clear();
-        } finally {
-            this.lock.unlock();
         }
     }
 
