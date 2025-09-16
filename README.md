@@ -9,7 +9,7 @@ Please subscribe to the [mailing list](https://groups.google.com/forum/#!forum/t
 
 ## Build
 
-    $ git clone git@github.com:pthirun/tehuti.git
+    $ git clone git@github.com:tehuti-io/tehuti.git
     $ cd tehuti
     $ ./gradlew build
 
