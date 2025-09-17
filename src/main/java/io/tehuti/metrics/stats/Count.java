@@ -20,13 +20,13 @@ import io.tehuti.metrics.MetricConfig;
  */
 public class Count implements MeasurableStat {
 
-    private int count;
+    private long count;
 
     public Count() {
         this.count = 0;
     }
 
-    public Count(int value) {
+    public Count(long value) {
         this.count = value;
     }
 
