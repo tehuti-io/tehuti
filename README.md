@@ -102,3 +102,7 @@ Finally, Tehuti can report metrics so that they can be picked up by external sys
 
     MetricsRepository metrics = new MetricsRepository(); // this is the global repository of metrics and sensors
     metrics.addReporter(new JmxReporter("prefix.for.all.metrics.names."));
+
+## Tags
+
+To tag a new version of of Tehuti, please bump the `version` field in the `gradle.properties` file.
