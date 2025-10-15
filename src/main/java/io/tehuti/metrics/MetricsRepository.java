@@ -143,6 +143,13 @@ public class MetricsRepository {
     }
 
     /**
+     * Create a {@link NoopSensor} with the given name.
+     */
+    public Sensor getNoopSensor(String name) {
+        return new NoopSensor(this, name, null, this.config, time);
+    }
+
+    /**
      * Remove a sensor with the given unique name. Unregister all metrics with this sensor too.
      * @param name The name of the sensor
      */
